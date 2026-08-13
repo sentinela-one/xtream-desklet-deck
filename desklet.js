@@ -552,10 +552,30 @@ class XtreamDeckDesklet extends Desklet.Desklet {
 
     _makeSlotButton(slot, slotIndex) {
         let bgColor = slot.color || "rgba(255,255,255,0.06)";
-        let button = new St.Button({
-            style: "width: " + BUTTON_SIZE + "px; height: " + BUTTON_SIZE + "px; margin: 3px; " +
-                   "background-color: " + bgColor + "; border-radius: 10px; " +
-                   (this._editMode ? "border: 2px solid rgba(255,255,255,0.8);" : "border: 2px solid rgba(255,255,255,0.5);")
+        let hoverBgColor = slot.color || "rgba(255,255,255,0.16)";
+        let borderColor = this._editMode ? "rgba(255,255,255,0.8)" : "rgba(255,255,255,0.5)";
+        let hoverBorderColor = "white";
+
+        const baseStyle = () => "width: " + BUTTON_SIZE + "px; height: " + BUTTON_SIZE + "px; margin: 3px; " +
+            "background-color: " + bgColor + "; border-radius: 10px; border: 2px solid " + borderColor + ";";
+        const hoverStyle = () => "width: " + BUTTON_SIZE + "px; height: " + BUTTON_SIZE + "px; margin: 3px; " +
+            "background-color: " + hoverBgColor + "; border-radius: 10px; border: 2px solid " + hoverBorderColor + ";";
+
+        let button = new St.Button({ style: baseStyle() });
+
+        // "Inchadinha": grows slightly and brightens on hover, same pattern used
+        // across the gimmyclues app (.btn-secondary-purple:hover -> scale(1.04)).
+        button.set_pivot_point(0.5, 0.5);
+        button.connect("notify::hover", () => {
+            if (button.hover) {
+                button.scale_x = 1.04;
+                button.scale_y = 1.04;
+                button.style = hoverStyle();
+            } else {
+                button.scale_x = 1.0;
+                button.scale_y = 1.0;
+                button.style = baseStyle();
+            }
         });
 
         let box = new St.BoxLayout({ vertical: true, x_align: St.Align.MIDDLE });
