@@ -17,6 +17,7 @@ const MAX_PAGES = 3;
 const ICON_SIZE = 34;
 const BUTTON_SIZE = 64;
 const SLOT_MARGIN = 7;
+const GRID_EDIT_BORDER_COLOR = "rgba(255,255,255,0.8)";
 const CUSTOM_ICON_MAX_BYTES = 2 * 1024 * 1024;
 
 const PALETTE = [
@@ -339,31 +340,63 @@ class ButtonEditorDialog extends ModalDialog.ModalDialog {
         let colorRow = new St.BoxLayout({ vertical: false, style: "spacing: 10px;" });
         let colorSwatches = [];
 
-        const updateColorSwatches = () => {
+        // Every swatch (and the hex preview) always shows a 1px border matching the
+        // main grid's own edit-mode button border, so they read as the same kind of
+        // "slot" - the 3px white border on top of that is purely the selection marker.
+        const applySwatchStyles = () => {
             for (let entry of colorSwatches) {
                 let selected = entry.colorValue === this._slot.color;
                 let border = selected
                     ? "border: 3px solid white;"
-                    : "border: none;";
+                    : "border: 1px solid " + GRID_EDIT_BORDER_COLOR + ";";
                 let bg = entry.colorValue ? "background-color: " + entry.colorValue + ";" : "";
                 entry.button.style = "width: 34px; height: 34px; border-radius: 8px; " + bg + " " + border;
             }
+            this._hexPreview.style = "width: 34px; height: 34px; border-radius: 8px; border: 1px solid " +
+                GRID_EDIT_BORDER_COLOR + ";" + (this._slot.color ? " background-color: " + this._slot.color + ";" : "");
+        };
+
+        // Palette/no-color swatches also mirror their value into the hex field, so
+        // it always reflects whatever is actually selected.
+        const selectColor = (value) => {
+            this._slot.color = value;
+            this._hexEntry.set_text(value);
+            applySwatchStyles();
         };
 
         for (let c of PALETTE) {
             let swatch = new St.Button();
-            swatch.connect("clicked", () => { this._slot.color = c; updateColorSwatches(); });
+            swatch.connect("clicked", () => selectColor(c));
             colorRow.add(swatch, { y_align: St.Align.MIDDLE });
             colorSwatches.push({ button: swatch, colorValue: c });
         }
         let noColorBtn = new St.Button();
-        noColorBtn.connect("clicked", () => { this._slot.color = ""; updateColorSwatches(); });
+        noColorBtn.connect("clicked", () => selectColor(""));
         colorRow.add(noColorBtn, { y_align: St.Align.MIDDLE });
         colorSwatches.push({ button: noColorBtn, colorValue: "" });
 
-        updateColorSwatches();
         colorRow.add(new St.Bin({ style: "width: 1px; height: 30px; background-color: rgba(255,255,255,0.2);" }), { y_align: St.Align.MIDDLE });
-        this.contentLayout.add(this._makeFieldGroup("Color", colorRow, "Select a color for the button."));
+
+        let customColumn = new St.BoxLayout({ vertical: true, style: "spacing: 6px;" });
+        customColumn.add(new St.Label({ text: "Hex color:", style_class: "xtream-deck-field-label" }));
+        let customRow = new St.BoxLayout({ vertical: false, style: "spacing: 10px;" });
+        this._hexEntry = new St.Entry({ style_class: "xtream-deck-entry", hint_text: "#RRGGBB", style: "width: 110px;" });
+        this._hexEntry.set_text(this._slot.color || "");
+        this._hexEntry.clutter_text.connect("text-changed", () => {
+            let value = this._hexEntry.get_text().trim();
+            if (/^#[0-9a-fA-F]{6}$/.test(value)) {
+                this._slot.color = value;
+                applySwatchStyles();
+            }
+        });
+        customRow.add(this._hexEntry, { y_align: St.Align.MIDDLE });
+        this._hexPreview = new St.Bin();
+        customRow.add(this._hexPreview, { y_align: St.Align.MIDDLE });
+        customColumn.add(customRow);
+        colorRow.add(customColumn, { y_align: St.Align.MIDDLE });
+
+        applySwatchStyles();
+        this.contentLayout.add(this._makeFieldGroup("Color", colorRow, "Select a color for the button, or enter a custom hex value."));
 
         this.setButtons([
             { label: "Clear button", action: () => { onClear(); this.close(); } },
@@ -722,7 +755,7 @@ class XtreamDeckDesklet extends Desklet.Desklet {
     _makeSlotButton(slot, slotIndex) {
         let bgColor = slot.color || "rgba(255,255,255,0.06)";
         let hoverBgColor = slot.color || "rgba(255,255,255,0.16)";
-        let borderColor = this._editMode ? "rgba(255,255,255,0.8)" : "rgba(255,255,255,0.5)";
+        let borderColor = this._editMode ? GRID_EDIT_BORDER_COLOR : "rgba(255,255,255,0.5)";
         let hoverBorderColor = "white";
 
         const baseStyle = () => "width: " + BUTTON_SIZE + "px; height: " + BUTTON_SIZE + "px; background-color: " + bgColor + "; border-radius: 10px; border: 2px solid " + borderColor + ";";
