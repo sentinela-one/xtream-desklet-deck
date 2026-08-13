@@ -14,7 +14,7 @@ const ICON_SIZE = 28;
 const BUTTON_SIZE = 64;
 
 const PALETTE = [
-    "#e6194b", "#3498db", "#f39c12", "#9b59b6", "#2ecc71",
+    "#e6194b", "#2D6DD9", "#f39c12", "#9b59b6", "#2ecc71",
     "#1abc9c", "#34495e", "#7f8c8d", "#2c2c2c", "#e91e8c"
 ];
 
@@ -40,7 +40,7 @@ class IconPickerDialog extends ModalDialog.ModalDialog {
         let titleRow = new St.BoxLayout({ vertical: false });
         let title = new St.Label({ text: "Choose an icon", style: "font-weight: bold; color: white; font-size: 24px;" });
         titleRow.add(title, { expand: true, x_fill: true, x_align: St.Align.START, y_align: St.Align.MIDDLE });
-        let closeBtn = new St.Button({ style: "width: 36px; height: 36px; border-radius: 18px; background-color: #3498db;" });
+        let closeBtn = new St.Button({ style: "width: 36px; height: 36px; border-radius: 18px; background-color: #2D6DD9;" });
         let closeGicon = makeWhiteIconFile(deskletPath, "solid", "xmark");
         if (closeGicon) closeBtn.set_child(new St.Icon({ gicon: closeGicon, icon_size: 20 }));
         closeBtn.connect("clicked", () => this.close());
@@ -164,7 +164,7 @@ class ButtonEditorDialog extends ModalDialog.ModalDialog {
         let titleRow = new St.BoxLayout({ vertical: false });
         let title = new St.Label({ text: "Edit button", style: "font-weight: bold; color: white; font-size: 24px;" });
         titleRow.add(title, { expand: true, x_fill: true, x_align: St.Align.START, y_align: St.Align.MIDDLE });
-        let closeBtn = new St.Button({ style: "width: 36px; height: 36px; border-radius: 18px; background-color: #3498db;" });
+        let closeBtn = new St.Button({ style: "width: 36px; height: 36px; border-radius: 18px; background-color: #2D6DD9;" });
         let closeGicon = makeWhiteIconFile(this._deskletPath, "solid", "xmark");
         if (closeGicon) closeBtn.set_child(new St.Icon({ gicon: closeGicon, icon_size: 20 }));
         closeBtn.connect("clicked", () => this.close());

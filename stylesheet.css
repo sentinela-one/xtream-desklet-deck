@@ -6,12 +6,12 @@
     font-size: 19px;
     border: 1px solid rgba(0,0,0,0.15);
     width: 420px;
-    selection-background-color: #3498db;
+    selection-background-color: #2D6DD9;
     selected-color: #ffffff;
 }
 
 .xtream-deck-entry:focus {
-    border: 1px solid #3498db;
+    border: 1px solid #2D6DD9;
 }
 
 .xtream-deck-dialog {
@@ -31,15 +31,15 @@
 }
 
 .xtream-deck-footer-button {
-    background-color: #3498db;
+    background-color: #2D6DD9 !important;
     border-radius: 12px;
     padding: 12px 18px;
     font-size: 18px;
-    font-weight: 600;
-    color: white;
+    font-weight: 500 !important;
+    color: white !important;
     min-width: 120px;
 }
 
 .xtream-deck-footer-button:hover {
-    background-color: #2ecc71;
+    background-color: #2ecc71 !important;
 }
