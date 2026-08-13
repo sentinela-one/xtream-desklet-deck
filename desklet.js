@@ -536,6 +536,21 @@ function makeWhiteIconFile(deskletPath, style, name) {
     }
 }
 
+// Perceived-brightness (YIQ) check, standard threshold - decides whether a slot's
+// label needs dark or light text to stay readable against its own custom background.
+function isLightColor(hex) {
+    if (!hex || hex[0] !== "#" || hex.length !== 7) return false;
+    let r = parseInt(hex.substr(1, 2), 16);
+    let g = parseInt(hex.substr(3, 2), 16);
+    let b = parseInt(hex.substr(5, 2), 16);
+    let brightness = (r * 299 + g * 587 + b * 114) / 1000;
+    return brightness > 150;
+}
+
+function labelColorForSlot(slot) {
+    return (slot.color && isLightColor(slot.color)) ? "#1a1a1a" : "white";
+}
+
 // Resolve a stored icon reference to a Gio icon. Supports three formats:
 //  - "fa:<style>:<name>"  -> bundled Font Awesome icon (recolored white, cached)
 //  - "/absolute/path.png" -> user-provided image file
@@ -833,7 +848,7 @@ class XtreamDeckDesklet extends Desklet.Desklet {
                 box.add(new St.Icon({ gicon: gicon, icon_size: ICON_SIZE }), { x_fill: false, x_align: St.Align.MIDDLE });
             }
             if (slot.label && slot.showTitle !== false) {
-                box.add(new St.Label({ text: slot.label, style: "font-size: 9px; color: white; text-align: center;" }), { x_fill: false, x_align: St.Align.MIDDLE });
+                box.add(new St.Label({ text: slot.label, style: "font-size: 9px; color: " + labelColorForSlot(slot) + "; text-align: center;" }), { x_fill: false, x_align: St.Align.MIDDLE });
             }
         }
         visual.set_child(box);
