@@ -228,14 +228,31 @@ class ButtonEditorDialog extends ModalDialog.ModalDialog {
         this.contentLayout.add(this._makeFieldGroup("Icon", this._iconDropzone, "Choose an icon to represent this button."));
 
         let colorRow = new St.BoxLayout({ vertical: false, style: "spacing: 10px;" });
+        let colorSwatches = [];
+
+        const updateColorSwatches = () => {
+            for (let entry of colorSwatches) {
+                let selected = entry.colorValue === this._slot.color;
+                let border = selected
+                    ? "border: 1px solid white;"
+                    : (entry.colorValue === "" ? "border: 1px dashed rgba(255,255,255,0.4);" : "border: 1px solid transparent;");
+                let bg = entry.colorValue ? "background-color: " + entry.colorValue + ";" : "";
+                entry.button.style = "width: 34px; height: 34px; border-radius: 8px; " + bg + " " + border;
+            }
+        };
+
         for (let c of PALETTE) {
-            let swatch = new St.Button({ style: "width: 34px; height: 34px; border-radius: 8px; background-color: " + c + ";" });
-            swatch.connect("clicked", () => { this._slot.color = c; });
+            let swatch = new St.Button();
+            swatch.connect("clicked", () => { this._slot.color = c; updateColorSwatches(); });
             colorRow.add(swatch, { y_align: St.Align.MIDDLE });
+            colorSwatches.push({ button: swatch, colorValue: c });
         }
-        let noColorBtn = new St.Button({ style: "width: 34px; height: 34px; border-radius: 8px; border: 1px dashed rgba(255,255,255,0.4);" });
-        noColorBtn.connect("clicked", () => { this._slot.color = ""; });
+        let noColorBtn = new St.Button();
+        noColorBtn.connect("clicked", () => { this._slot.color = ""; updateColorSwatches(); });
         colorRow.add(noColorBtn, { y_align: St.Align.MIDDLE });
+        colorSwatches.push({ button: noColorBtn, colorValue: "" });
+
+        updateColorSwatches();
         colorRow.add(new St.Bin({ style: "width: 1px; height: 30px; background-color: rgba(255,255,255,0.2);" }), { y_align: St.Align.MIDDLE });
         this.contentLayout.add(this._makeFieldGroup("Color", colorRow, "Select a color for the button."));
 
