@@ -14,7 +14,7 @@ const COLUMNS = 5;
 const ROWS = 2;
 const SLOTS_PER_PAGE = COLUMNS * ROWS;
 const MAX_PAGES = 3;
-const ICON_SIZE = 28;
+const ICON_SIZE = 34;
 const BUTTON_SIZE = 64;
 const SLOT_MARGIN = 7;
 const CUSTOM_ICON_MAX_BYTES = 2 * 1024 * 1024;
@@ -670,6 +670,19 @@ class XtreamDeckDesklet extends Desklet.Desklet {
 
         this.setContent(root);
         this._render();
+
+        // Esc exits edit mode. Desklets don't hold an exclusive key grab like
+        // ModalDialog does, so this only fires while the shell stage actually has
+        // keyboard focus (reliably true right after clicking the gear, which is the
+        // normal way edit mode gets entered).
+        global.stage.connect("key-press-event", (actor, event) => {
+            if (this._editMode && event.get_key_symbol() === Clutter.KEY_Escape) {
+                this._editMode = false;
+                this._render();
+                return true;
+            }
+            return false;
+        });
     }
 
     _render() {
