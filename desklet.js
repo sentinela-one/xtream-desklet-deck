@@ -32,7 +32,7 @@ function styleFooterButton(button) {
 }
 
 function emptySlot() {
-    return { label: "", command: "", icon: "", color: "" };
+    return { label: "", command: "", icon: "", color: "", showTitle: true };
 }
 
 function emptyPage() {
@@ -170,7 +170,7 @@ class ButtonEditorDialog extends ModalDialog.ModalDialog {
         super({ styleClass: "xtream-deck-dialog" });
         this.contentLayout.style = "spacing: 22px; padding: 22px 22px;";
         this._deskletPath = deskletPath;
-        this._slot = { label: slot.label || "", command: slot.command || "", icon: slot.icon || "", color: slot.color || "" };
+        this._slot = { label: slot.label || "", command: slot.command || "", icon: slot.icon || "", color: slot.color || "", showTitle: slot.showTitle !== false };
         this._onSave = onSave;
         this._onClear = onClear;
 
@@ -187,7 +187,18 @@ class ButtonEditorDialog extends ModalDialog.ModalDialog {
         this._labelEntry = new St.Entry({ style_class: "xtream-deck-entry", hint_text: "Enter button label" });
         this._labelEntry.set_text(this._slot.label);
         this.setInitialKeyFocus(this._labelEntry.clutter_text);
-        this.contentLayout.add(this._makeFieldGroup("Label", this._labelEntry, "This is the text that will appear on the button."));
+
+        let labelHeaderRow = new St.BoxLayout({ vertical: false, style: "spacing: 10px;" });
+        labelHeaderRow.add(new St.Label({ text: "Label", style_class: "xtream-deck-field-label" }), { expand: true, x_fill: true, x_align: St.Align.START, y_align: St.Align.MIDDLE });
+        labelHeaderRow.add(new St.Label({ text: "Show Title", style_class: "xtream-deck-field-label" }), { y_align: St.Align.MIDDLE });
+        this._showTitleToggle = this._makeToggle(this._slot.showTitle, (value) => { this._slot.showTitle = value; });
+        labelHeaderRow.add(this._showTitleToggle, { y_align: St.Align.MIDDLE });
+
+        let labelGroup = new St.BoxLayout({ vertical: true, style: "spacing: 6px;" });
+        labelGroup.add(labelHeaderRow);
+        labelGroup.add(this._labelEntry);
+        labelGroup.add(new St.Label({ text: "This is the text that will appear on the button. \"Show Title\" controls whether it's drawn under the icon on the grid.", style_class: "xtream-deck-hint" }));
+        this.contentLayout.add(labelGroup);
 
         this._commandEntry = new St.Entry({ style_class: "xtream-deck-entry", hint_text: "e.g. /home/user/scripts/my-script.sh" });
         this._commandEntry.set_text(this._slot.command);
@@ -246,6 +257,42 @@ class ButtonEditorDialog extends ModalDialog.ModalDialog {
         group.add(contentActor);
         group.add(new St.Label({ text: hintText, style_class: "xtream-deck-hint" }));
         return group;
+    }
+
+    // Pill-shaped ON/OFF toggle: green with "ON" + a white dot on the right when
+    // on, red with a white dot + "OFF" on the left when off.
+    _makeToggle(initialValue, onChange) {
+        let value = !!initialValue;
+        let btn = new St.Button();
+
+        const render = () => {
+            let bg = value ? "#19BC97" : "#e6194b";
+            btn.style = "width: 92px; height: 36px; border-radius: 18px; padding: 4px; background-color: " + bg + ";";
+
+            let row = new St.BoxLayout({ vertical: false });
+            let thumb = new St.Bin({ style: "width: 26px; height: 26px; border-radius: 13px; background-color: white;" });
+            let text = new St.Label({ text: value ? "ON" : "OFF", style: "color: white; font-size: 13px; font-weight: bold;" });
+            let textBin = new St.Bin({ x_align: St.Align.MIDDLE, y_align: St.Align.MIDDLE });
+            textBin.set_child(text);
+
+            if (value) {
+                row.add(textBin, { expand: true, x_fill: true, y_align: St.Align.MIDDLE });
+                row.add(thumb, { y_align: St.Align.MIDDLE });
+            } else {
+                row.add(thumb, { y_align: St.Align.MIDDLE });
+                row.add(textBin, { expand: true, x_fill: true, y_align: St.Align.MIDDLE });
+            }
+            btn.set_child(row);
+        };
+        render();
+
+        btn.connect("clicked", () => {
+            value = !value;
+            render();
+            onChange(value);
+        });
+
+        return btn;
     }
 
     _iconLabelButtonChild(iconName, text) {
@@ -492,7 +539,7 @@ class XtreamDeckDesklet extends Desklet.Desklet {
             if (gicon) {
                 box.add(new St.Icon({ gicon: gicon, icon_size: ICON_SIZE }), { x_fill: false, x_align: St.Align.MIDDLE });
             }
-            if (slot.label) {
+            if (slot.label && slot.showTitle !== false) {
                 box.add(new St.Label({ text: slot.label, style: "font-size: 9px; color: white; text-align: center;" }), { x_fill: false, x_align: St.Align.MIDDLE });
             }
         }
