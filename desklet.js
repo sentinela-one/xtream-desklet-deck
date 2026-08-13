@@ -67,7 +67,7 @@ class IconPickerDialog extends ModalDialog.ModalDialog {
         ]);
         let footerChildren = this._buttonLayout.get_children();
         for (let button of footerChildren) {
-            button.style = "background-color: #3498db; border-radius: 12px; padding: 12px 18px; font-size: 15px; color: white; min-width: 150px;";
+            button.style = "background-color: #3498db; border-radius: 12px; padding: 12px 18px; font-size: 18px; color: white; min-width: 150px;";
         }
     }
 
@@ -238,7 +238,7 @@ class ButtonEditorDialog extends ModalDialog.ModalDialog {
     _styleFooterButtons() {
         let children = this._buttonLayout.get_children();
         for (let button of children) {
-            button.style = "background-color: #3498db; border-radius: 12px; padding: 12px 18px; font-size: 15px; color: white; min-width: 150px;";
+            button.style = "background-color: #3498db; border-radius: 12px; padding: 12px 18px; font-size: 18px; color: white; min-width: 150px;";
         }
     }
 
