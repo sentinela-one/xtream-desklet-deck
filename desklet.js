@@ -237,7 +237,7 @@ class ButtonEditorDialog extends ModalDialog.ModalDialog {
             for (let entry of colorSwatches) {
                 let selected = entry.colorValue === this._slot.color;
                 let border = selected
-                    ? "border: 1px solid white;"
+                    ? "border: 3px solid white;"
                     : (entry.colorValue === "" ? "border: 1px dashed rgba(255,255,255,0.4);" : "border: 1px solid transparent;");
                 let bg = entry.colorValue ? "background-color: " + entry.colorValue + ";" : "";
                 entry.button.style = "width: 34px; height: 34px; border-radius: 8px; " + bg + " " + border;
@@ -547,7 +547,7 @@ class XtreamDeckDesklet extends Desklet.Desklet {
         let button = new St.Button({
             style: "width: " + BUTTON_SIZE + "px; height: " + BUTTON_SIZE + "px; margin: 3px; " +
                    "background-color: " + bgColor + "; border-radius: 10px; " +
-                   (this._editMode ? "border: 1px dashed rgba(255,255,255,0.5);" : "border: 1px dashed rgba(255,255,255,0.2);")
+                   (this._editMode ? "border: 1px dashed rgba(255,255,255,0.6);" : "border: 1px dashed rgba(255,255,255,0.4);")
         });
 
         let box = new St.BoxLayout({ vertical: true, x_align: St.Align.MIDDLE });
