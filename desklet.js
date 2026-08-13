@@ -147,7 +147,7 @@ class ConfirmDialog extends ModalDialog.ModalDialog {
         this.contentLayout.add(message);
 
         this.setButtons([
-            { label: "Keep editing", action: () => this.close() },
+            { label: "Cancel", action: () => this.close() },
             {
                 label: confirmLabel, focused: true, action: () => {
                     this.close();
@@ -158,7 +158,7 @@ class ConfirmDialog extends ModalDialog.ModalDialog {
 
         let children = this._buttonLayout.get_children();
         for (let button of children) {
-            if (button.label === "Keep editing") {
+            if (button.label === "Cancel") {
                 button.style = "padding: 10px 16px; font-size: 15px; border-radius: 6px;";
             } else if (button.label === confirmLabel) {
                 button.style = "padding: 10px 16px; font-size: 15px; border-radius: 6px; background-color: #e6194b;";
