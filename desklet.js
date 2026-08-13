@@ -21,7 +21,7 @@ const SLOT_MARGIN = 7;
 const GRID_EDIT_BORDER_COLOR = "rgba(255,255,255,0.8)";
 const CUSTOM_ICON_MAX_BYTES = 2 * 1024 * 1024;
 const DONATE_URL = "https://ko-fi.com/oliveirawro";
-const DONATE_COIN_COLOR = "#FFC107";
+const DONATE_COIN_COLOR = "#FFD729";
 
 const PALETTE = [
     "#e6194b", "#e91e8c", "#f39c12", "#9b59b6", "#2D6DD9",
@@ -543,6 +543,30 @@ function makeWhiteIconFile(deskletPath, style, name, hexColor) {
     }
 }
 
+// Same recolor-and-cache approach as makeWhiteIconFile, for one-off custom SVGs that
+// live outside the bundled Font Awesome set (icons/custom/) - keeps those out of the
+// Font Awesome folder so attribution/licensing there stays accurate.
+function makeCustomIconFile(deskletPath, name, hexColor) {
+    let color = hexColor || "#ffffff";
+    try {
+        let cacheDir = GLib.get_user_cache_dir() + "/xtream-desklet-deck/icons";
+        GLib.mkdir_with_parents(cacheDir, 0o755);
+        let cachedPath = cacheDir + "/custom-" + name + "-" + color.replace("#", "") + ".svg";
+        let cacheFile = Gio.File.new_for_path(cachedPath);
+        if (!cacheFile.query_exists(null)) {
+            let srcPath = deskletPath + "/icons/custom/" + name + ".svg";
+            let [ok, contents] = GLib.file_get_contents(srcPath);
+            if (!ok) return null;
+            let svg = ByteArray.toString(contents).replace(/currentColor/g, color);
+            GLib.file_set_contents(cachedPath, svg);
+        }
+        return Gio.icon_new_for_string(cachedPath);
+    } catch (e) {
+        global.logError("xtream-desklet-deck: failed to prepare custom icon " + name + ": " + e);
+        return null;
+    }
+}
+
 // Perceived-brightness (YIQ) check, standard threshold - decides whether a slot's
 // label needs dark or light text to stay readable against its own custom background.
 function isLightColor(hex) {
@@ -729,7 +753,7 @@ class XtreamDeckDesklet extends Desklet.Desklet {
 
     _makeDonateButton() {
         let btn = new St.Button({ style: "width: 22px; height: 22px; border-radius: 11px;" });
-        let gicon = makeWhiteIconFile(this._metadata.path, "solid", "coins", DONATE_COIN_COLOR);
+        let gicon = makeCustomIconFile(this._metadata.path, "coin", DONATE_COIN_COLOR);
         if (gicon) {
             btn.set_child(new St.Icon({ gicon: gicon, icon_size: 16 }));
         }
