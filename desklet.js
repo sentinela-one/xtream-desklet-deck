@@ -14,7 +14,7 @@ const ICON_SIZE = 28;
 const BUTTON_SIZE = 64;
 
 const PALETTE = [
-    "#e6194b", "#2D6DD9", "#f39c12", "#9b59b6", "#2ecc71",
+    "#e6194b", "#2D6DD9", "#f39c12", "#9b59b6", "#19BC97",
     "#1abc9c", "#34495e", "#7f8c8d", "#2c2c2c", "#e91e8c"
 ];
 
