@@ -32,6 +32,7 @@ function emptyPage() {
 class IconPickerDialog extends ModalDialog.ModalDialog {
     constructor(deskletPath, onPick) {
         super({ styleClass: "xtream-deck-dialog" });
+        this.contentLayout.style = "spacing: 14px; padding: 6px;";
         this._deskletPath = deskletPath;
         this._onPick = onPick;
         this._manifest = this._loadManifest();
@@ -108,6 +109,7 @@ class IconPickerDialog extends ModalDialog.ModalDialog {
 class ButtonEditorDialog extends ModalDialog.ModalDialog {
     constructor(deskletPath, slot, onSave, onClear) {
         super({ styleClass: "xtream-deck-dialog" });
+        this.contentLayout.style = "spacing: 18px; padding: 6px;";
         this._deskletPath = deskletPath;
         this._slot = { label: slot.label || "", command: slot.command || "", icon: slot.icon || "", color: slot.color || "" };
         this._onSave = onSave;
