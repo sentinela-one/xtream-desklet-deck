@@ -92,7 +92,7 @@ class IconPickerDialog extends ModalDialog.ModalDialog {
             if (!ok) return [];
             return JSON.parse(ByteArray.toString(contents));
         } catch (e) {
-            global.logError("desklet-xtream: failed to load icon manifest: " + e);
+            global.logError("xtream-desklet: failed to load icon manifest: " + e);
             return [];
         }
     }
@@ -367,7 +367,7 @@ class ButtonEditorDialog extends ModalDialog.ModalDialog {
 // so icons stay legible on any background color.
 function makeWhiteIconFile(deskletPath, style, name) {
     try {
-        let cacheDir = GLib.get_user_cache_dir() + "/desklet-xtream/icons";
+        let cacheDir = GLib.get_user_cache_dir() + "/xtream-desklet/icons";
         GLib.mkdir_with_parents(cacheDir, 0o755);
         let cachedPath = cacheDir + "/" + style + "-" + name + ".svg";
         let cacheFile = Gio.File.new_for_path(cachedPath);
@@ -380,7 +380,7 @@ function makeWhiteIconFile(deskletPath, style, name) {
         }
         return Gio.icon_new_for_string(cachedPath);
     } catch (e) {
-        global.logError("desklet-xtream: failed to prepare icon " + style + "/" + name + ": " + e);
+        global.logError("xtream-desklet: failed to prepare icon " + style + "/" + name + ": " + e);
         return null;
     }
 }
@@ -406,7 +406,7 @@ class XtreamDeckDesklet extends Desklet.Desklet {
     constructor(metadata, desklet_id) {
         super(metadata, desklet_id);
         this._metadata = metadata;
-        this._statePath = GLib.get_home_dir() + "/.config/desklet-xtream/instances/" + desklet_id + ".json";
+        this._statePath = GLib.get_home_dir() + "/.config/xtream-desklet/instances/" + desklet_id + ".json";
         this._editMode = false;
         this._currentPage = 0;
 
@@ -467,7 +467,7 @@ class XtreamDeckDesklet extends Desklet.Desklet {
             }
             return newestPath;
         } catch (e) {
-            global.logError("desklet-xtream: failed to scan instance state files: " + e);
+            global.logError("xtream-desklet: failed to scan instance state files: " + e);
             return null;
         }
     }
@@ -479,7 +479,7 @@ class XtreamDeckDesklet extends Desklet.Desklet {
             let data = { pages: this._pages, currentPage: this._currentPage };
             GLib.file_set_contents(this._statePath, JSON.stringify(data, null, 2));
         } catch (e) {
-            global.logError("desklet-xtream: failed to save state: " + e);
+            global.logError("xtream-desklet: failed to save state: " + e);
         }
     }
 
@@ -487,7 +487,7 @@ class XtreamDeckDesklet extends Desklet.Desklet {
         try {
             Util.spawnCommandLine(command);
         } catch (e) {
-            global.logError("desklet-xtream: failed to run command '" + command + "': " + e);
+            global.logError("xtream-desklet: failed to run command '" + command + "': " + e);
         }
     }
 

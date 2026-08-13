@@ -28,14 +28,14 @@ a native Cinnamon desklet does the same job for a fraction of the resource cost.
 
 1. Clone this repository:
    ```bash
-   git clone https://github.com/oliveirawro/desklet-xtream.git
-   cd desklet-xtream
+   git clone https://github.com/oliveirawro/xtream-desklet.git
+   cd xtream-desklet
    ```
 
 2. Link it into Cinnamon's desklets folder (Cinnamon only loads desklets from this exact path):
    ```bash
    mkdir -p ~/.local/share/cinnamon/desklets
-   ln -s "$(pwd)" ~/.local/share/cinnamon/desklets/desklet-xtream@oliveirawro
+   ln -s "$(pwd)" ~/.local/share/cinnamon/desklets/xtream-desklet@oliveirawro
    ```
 
 3. Add it to your desktop:
@@ -80,7 +80,7 @@ button here.
 - Right-click the desklet → **Remove**, to remove it from the desktop.
 - Delete the symlink to fully remove it from Cinnamon:
   ```bash
-  rm ~/.local/share/cinnamon/desklets/desklet-xtream@oliveirawro
+  rm ~/.local/share/cinnamon/desklets/xtream-desklet@oliveirawro
   ```
 
 ## How it works / project layout
@@ -95,7 +95,7 @@ button here.
   `LICENSE.txt`. See [Attribution](#attribution) below.
 
 Each instance's button configuration (labels, commands, icons, colors, pages) is stored as plain
-JSON at `~/.config/desklet-xtream/instances/<instance-id>.json` — not inside this repository, so
+JSON at `~/.config/xtream-desklet/instances/<instance-id>.json` — not inside this repository, so
 your personal commands and paths never need to touch this repo or any fork of it.
 
 ## Attribution
