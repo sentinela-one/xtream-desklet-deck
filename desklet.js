@@ -246,7 +246,7 @@ class ButtonEditorDialog extends ModalDialog.ModalDialog {
                 let selected = entry.colorValue === this._slot.color;
                 let border = selected
                     ? "border: 3px solid white;"
-                    : (entry.colorValue === "" ? "border: 2px solid rgba(255,255,255,0.5);" : "border: none;");
+                    : "border: none;";
                 let bg = entry.colorValue ? "background-color: " + entry.colorValue + ";" : "";
                 entry.button.style = "width: 34px; height: 34px; border-radius: 8px; " + bg + " " + border;
             }
