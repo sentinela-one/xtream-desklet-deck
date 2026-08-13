@@ -806,8 +806,10 @@ class XtreamDeckDesklet extends Desklet.Desklet {
         // Esc exits edit mode. Desklets don't hold an exclusive key grab like
         // ModalDialog does, so this only fires while the shell stage actually has
         // keyboard focus (reliably true right after clicking the gear, which is the
-        // normal way edit mode gets entered).
-        global.stage.connect("key-press-event", (actor, event) => {
+        // normal way edit mode gets entered). Connected to global.stage (not our own
+        // actor), so it must be disconnected in on_desklet_removed() - otherwise it
+        // outlives this desklet instance and leaks.
+        this._escKeyHandlerId = global.stage.connect("key-press-event", (actor, event) => {
             if (this._editMode && event.get_key_symbol() === Clutter.KEY_Escape) {
                 this._editMode = false;
                 this._render();
@@ -815,6 +817,13 @@ class XtreamDeckDesklet extends Desklet.Desklet {
             }
             return false;
         });
+    }
+
+    on_desklet_removed(deleteConfig) {
+        if (this._escKeyHandlerId) {
+            global.stage.disconnect(this._escKeyHandlerId);
+            this._escKeyHandlerId = null;
+        }
     }
 
     _render() {
