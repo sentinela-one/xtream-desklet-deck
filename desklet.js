@@ -327,12 +327,19 @@ class XtreamDeckDesklet extends Desklet.Desklet {
 
         let box = new St.BoxLayout({ vertical: true, x_align: St.Align.MIDDLE });
 
-        let gicon = resolveIconGicon(this._metadata.path, slot.icon);
-        if (gicon) {
-            box.add(new St.Icon({ gicon: gicon, icon_size: ICON_SIZE }), { x_fill: false, x_align: St.Align.MIDDLE });
-        }
-        if (slot.label) {
-            box.add(new St.Label({ text: slot.label, style: "font-size: 9px; color: white; text-align: center;" }), { x_fill: false, x_align: St.Align.MIDDLE });
+        if (this._editMode) {
+            let pencilGicon = makeWhiteIconFile(this._metadata.path, "solid", "pen-to-square");
+            if (pencilGicon) {
+                box.add(new St.Icon({ gicon: pencilGicon, icon_size: ICON_SIZE, opacity: 210 }), { x_fill: false, x_align: St.Align.MIDDLE });
+            }
+        } else {
+            let gicon = resolveIconGicon(this._metadata.path, slot.icon);
+            if (gicon) {
+                box.add(new St.Icon({ gicon: gicon, icon_size: ICON_SIZE }), { x_fill: false, x_align: St.Align.MIDDLE });
+            }
+            if (slot.label) {
+                box.add(new St.Label({ text: slot.label, style: "font-size: 9px; color: white; text-align: center;" }), { x_fill: false, x_align: St.Align.MIDDLE });
+            }
         }
         button.set_child(box);
 
