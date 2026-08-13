@@ -375,10 +375,6 @@ class ButtonEditorDialog extends ModalDialog.ModalDialog {
         colorRow.add(noColorBtn, { y_align: St.Align.MIDDLE });
         colorSwatches.push({ button: noColorBtn, colorValue: "" });
 
-        colorRow.add(new St.Bin({ style: "width: 1px; height: 30px; background-color: rgba(255,255,255,0.2);" }), { y_align: St.Align.MIDDLE });
-
-        let customColumn = new St.BoxLayout({ vertical: true, style: "spacing: 6px;" });
-        customColumn.add(new St.Label({ text: "Hex color:", style_class: "xtream-deck-field-label" }));
         let customRow = new St.BoxLayout({ vertical: false, style: "spacing: 10px;" });
         this._hexEntry = new St.Entry({ style_class: "xtream-deck-entry", hint_text: "#RRGGBB", style: "width: 110px;" });
         this._hexEntry.set_text(this._slot.color || "");
@@ -392,11 +388,28 @@ class ButtonEditorDialog extends ModalDialog.ModalDialog {
         customRow.add(this._hexEntry, { y_align: St.Align.MIDDLE });
         this._hexPreview = new St.Bin();
         customRow.add(this._hexPreview, { y_align: St.Align.MIDDLE });
-        customColumn.add(customRow);
-        colorRow.add(customColumn, { y_align: St.Align.MIDDLE });
 
         applySwatchStyles();
-        this.contentLayout.add(this._makeFieldGroup("Color", colorRow, "Select a color for the button, or enter a custom hex value."));
+
+        // Palette and hex columns side by side, each with its own header label, so
+        // "Color" and "Hex color:" sit on the same row instead of the hex label
+        // trailing lower, stacked only above its own entry.
+        let paletteColumn = new St.BoxLayout({ vertical: true, style: "spacing: 6px;" });
+        paletteColumn.add(new St.Label({ text: "Color", style_class: "xtream-deck-field-label" }));
+        paletteColumn.add(colorRow);
+        paletteColumn.add(new St.Label({ text: "Select a color for the button, or enter a custom hex value.", style_class: "xtream-deck-hint" }));
+
+        let divider = new St.Bin({ style: "width: 1px; background-color: rgba(255,255,255,0.15);" });
+
+        let hexColumn = new St.BoxLayout({ vertical: true, style: "spacing: 6px;" });
+        hexColumn.add(new St.Label({ text: "Hex color:", style_class: "xtream-deck-field-label" }));
+        hexColumn.add(customRow);
+
+        let colorGroup = new St.BoxLayout({ vertical: false, style: "spacing: 22px;" });
+        colorGroup.add(paletteColumn);
+        colorGroup.add(divider, { y_fill: true, y_align: St.Align.START });
+        colorGroup.add(hexColumn);
+        this.contentLayout.add(colorGroup);
 
         this.setButtons([
             { label: "Clear button", action: () => { onClear(); this.close(); } },
