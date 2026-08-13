@@ -135,7 +135,7 @@ class IconPickerDialog extends ModalDialog.ModalDialog {
 
 // Small reusable confirmation dialog, styled to match the rest of Xtream Deck.
 class ConfirmDialog extends ModalDialog.ModalDialog {
-    constructor(deskletPath, titleText, messageText, confirmLabel, onConfirm) {
+    constructor(deskletPath, titleText, messageText, confirmLabel, onConfirm, confirmColor) {
         super({ styleClass: "xtream-deck-dialog" });
         this.contentLayout.style = "spacing: 16px; padding: 22px 22px;";
 
@@ -161,7 +161,7 @@ class ConfirmDialog extends ModalDialog.ModalDialog {
             if (button.label === "Cancel") {
                 button.style = "padding: 10px 16px; font-size: 15px; border-radius: 6px;";
             } else if (button.label === confirmLabel) {
-                button.style = "padding: 10px 16px; font-size: 15px; border-radius: 6px; background-color: #e6194b;";
+                button.style = "padding: 10px 16px; font-size: 15px; border-radius: 6px; background-color: " + (confirmColor || "#e6194b") + ";";
             }
         }
     }
@@ -651,7 +651,12 @@ class XtreamDeckDesklet extends Desklet.Desklet {
                        (isCurrent ? "background-color: rgba(255,255,255,0.9);" : "background-color: rgba(255,255,255,0.2);"),
                 label: String(p + 1)
             });
+            let suppressNextClick = false;
             dot.connect("clicked", () => {
+                if (suppressNextClick) {
+                    suppressNextClick = false;
+                    return;
+                }
                 this._currentPage = p;
                 this._saveState();
                 this._render();
@@ -659,6 +664,10 @@ class XtreamDeckDesklet extends Desklet.Desklet {
             if (p >= 1) {
                 dot.connect("button-release-event", (actor, event) => {
                     if (event.get_button() === 3) {
+                        // Right-click also fires "clicked" on St.Button - suppress
+                        // that so it doesn't switch pages while the confirm dialog
+                        // (and a page-switching re-render underneath it) is opening.
+                        suppressNextClick = true;
                         this._confirmRemovePage(p);
                     }
                     return false;
@@ -669,12 +678,7 @@ class XtreamDeckDesklet extends Desklet.Desklet {
 
         if (this._editMode && this._pages.length < MAX_PAGES) {
             let addBtn = new St.Button({ style: "width: 22px; height: 22px; margin: 2px; border-radius: 11px; background-color: rgba(255,255,255,0.2);", label: "+" });
-            addBtn.connect("clicked", () => {
-                this._pages.push(emptyPage());
-                this._currentPage = this._pages.length - 1;
-                this._saveState();
-                this._render();
-            });
+            addBtn.connect("clicked", () => this._confirmAddPage());
             this._footer.add(addBtn);
         }
     }
@@ -686,6 +690,23 @@ class XtreamDeckDesklet extends Desklet.Desklet {
             "This will permanently delete all buttons configured on this page. This cannot be undone.",
             "Remove Page",
             () => this._removePage(pageIndex)
+        );
+        dialog.open();
+    }
+
+    _confirmAddPage() {
+        let dialog = new ConfirmDialog(
+            this._metadata.path,
+            "Add page " + (this._pages.length + 1) + "?",
+            "This will add a new page with 10 empty buttons.",
+            "Add Page",
+            () => {
+                this._pages.push(emptyPage());
+                this._currentPage = this._pages.length - 1;
+                this._saveState();
+                this._render();
+            },
+            "#2D6DD9"
         );
         dialog.open();
     }
