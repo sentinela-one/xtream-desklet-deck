@@ -39,14 +39,15 @@ class IconPickerDialog extends ModalDialog.ModalDialog {
         let title = new St.Label({ text: "Choose an icon", style: "font-weight: bold; color: white; font-size: 16px; padding-bottom: 4px;" });
         this.contentLayout.add(title, { x_align: St.Align.MIDDLE });
 
-        this._entry = new St.Entry({ style_class: "xtream-deck-entry", hint_text: "Search icons (e.g. microphone, camera, play)" });
+        let hint = new St.Label({ text: "Type to search, e.g. \"microphone\", \"camera\", \"play\". Showing first 24 matches.", style: "color: #999; font-size: 10px; padding-bottom: 2px;" });
+        this.contentLayout.add(hint);
+
+        this._entry = new St.Entry({ style_class: "xtream-deck-entry", hint_text: "Search icons…" });
         this.contentLayout.add(this._entry, { y_align: St.Align.START });
         this.setInitialKeyFocus(this._entry.clutter_text);
 
-        this._resultsScroll = new St.ScrollView({ style: "width: 380px; height: 240px; padding-top: 4px;" });
-        this._resultsBox = new St.Table({ homogeneous: false });
-        this._resultsScroll.add_actor(this._resultsBox);
-        this.contentLayout.add(this._resultsScroll);
+        this._resultsBin = new St.Bin({ style: "width: 400px; min-height: 220px;" });
+        this.contentLayout.add(this._resultsBin);
 
         this._entry.clutter_text.connect("text-changed", () => this._renderResults(this._entry.get_text()));
         this._renderResults("");
@@ -70,28 +71,36 @@ class IconPickerDialog extends ModalDialog.ModalDialog {
     }
 
     _renderResults(query) {
-        this._resultsBox.destroy_all_children();
         let q = query.trim().toLowerCase();
         let matches = this._manifest.filter(i => !q || i.name.includes(q));
-        matches = matches.slice(0, 60);
+        matches = matches.slice(0, 24);
 
-        let cols = 8;
+        if (matches.length === 0) {
+            this._resultsBin.set_child(new St.Label({ text: q ? "No icons match \"" + q + "\"." : "No icons available.", style: "color: #999; padding: 12px;" }));
+            return;
+        }
+
+        let cols = 6;
+        let grid = new St.Table({ homogeneous: false });
         for (let idx = 0; idx < matches.length; idx++) {
             let item = matches[idx];
             let row = Math.floor(idx / cols);
             let col = idx % cols;
 
-            let btn = new St.Button({ style: "width: 40px; height: 40px; margin: 2px; background-color: rgba(255,255,255,0.06); border-radius: 4px;" });
+            let btn = new St.Button({ style: "width: 56px; height: 56px; margin: 3px; background-color: rgba(255,255,255,0.08); border-radius: 6px;" });
             let gicon = makeWhiteIconFile(this._deskletPath, item.style, item.name);
             if (gicon) {
-                btn.set_child(new St.Icon({ gicon: gicon, icon_size: 20 }));
+                btn.set_child(new St.Icon({ gicon: gicon, icon_size: 28 }));
+            } else {
+                btn.set_child(new St.Label({ text: "?", style: "color: white;" }));
             }
             btn.connect("clicked", () => {
                 this._onPick("fa:" + item.style + ":" + item.name);
                 this.close();
             });
-            this._resultsBox.add(btn, { row: row, col: col, x_expand: false, y_expand: false });
+            grid.add(btn, { row: row, col: col, x_expand: false, y_expand: false });
         }
+        this._resultsBin.set_child(grid);
     }
 }
 
