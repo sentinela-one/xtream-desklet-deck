@@ -196,9 +196,9 @@ class ButtonEditorDialog extends ModalDialog.ModalDialog {
         // A table (instead of two independent rows) guarantees the "Show Title"
         // header lines up exactly above the toggle, in a column that sits right
         // after the entry field rather than pinned to the dialog's right edge.
-        let showTitleHeaderWrap = new St.Bin({ style: "margin-left: 6px; margin-bottom: 6px;" });
+        let showTitleHeaderWrap = new St.Bin({ style: "margin-bottom: 6px;" });
         showTitleHeaderWrap.set_child(new St.Label({ text: "Show Title", style_class: "xtream-deck-field-label" }));
-        let toggleWrap = new St.Bin({ style: "margin-left: 6px;" });
+        let toggleWrap = new St.Bin();
         toggleWrap.set_child(this._showTitleToggle);
 
         let fieldTable = new St.Table({ homogeneous: false });
