@@ -18,8 +18,8 @@ const PALETTE = [
     "#1abc9c", "#34495e", "#7f8c8d", "#2c2c2c", "#e91e8c"
 ];
 
-const FOOTER_BUTTON_STYLE_BASE = "border: none; border-radius: 16px; padding: 12px 18px; font-size: 18px; font-weight: normal; color: white; min-width: 120px; background-color: #2D6DD9;";
-const FOOTER_BUTTON_STYLE_HOVER = "border: none; border-radius: 16px; padding: 12px 18px; font-size: 18px; font-weight: normal; color: white; min-width: 120px; background-color: #FF4D00;";
+const FOOTER_BUTTON_STYLE_BASE = "border: none; border-radius: 10px; padding: 8px 18px; font-size: 18px; font-weight: normal; color: white; min-width: 120px; background-color: #2D6DD9;";
+const FOOTER_BUTTON_STYLE_HOVER = "border: none; border-radius: 10px; padding: 8px 18px; font-size: 18px; font-weight: normal; color: white; min-width: 120px; background-color: #FF4D00;";
 
 // Inline-style the dialog footer buttons (Cinnamon's stylesheet reload for xlets is
 // unreliable, so we avoid relying on an external CSS class here) and drive the hover
@@ -53,9 +53,9 @@ class IconPickerDialog extends ModalDialog.ModalDialog {
         let titleRow = new St.BoxLayout({ vertical: false });
         let title = new St.Label({ text: "Choose an icon", style: "font-weight: bold; color: white; font-size: 24px;" });
         titleRow.add(title, { expand: true, x_fill: true, x_align: St.Align.START, y_align: St.Align.MIDDLE });
-        let closeBtn = new St.Button({ style: "width: 36px; height: 36px; border-radius: 18px; background-color: #2D6DD9;" });
+        let closeBtn = new St.Button({ style: "width: 42px; height: 42px; border-radius: 21px; background-color: #2D6DD9; margin-right: -8px; margin-top: -8px;" });
         let closeGicon = makeWhiteIconFile(deskletPath, "solid", "xmark");
-        if (closeGicon) closeBtn.set_child(new St.Icon({ gicon: closeGicon, icon_size: 20 }));
+        if (closeGicon) closeBtn.set_child(new St.Icon({ gicon: closeGicon, icon_size: 22 }));
         closeBtn.connect("clicked", () => this.close());
         titleRow.add(closeBtn, { y_align: St.Align.START });
         this.contentLayout.add(titleRow);
@@ -177,26 +177,26 @@ class ButtonEditorDialog extends ModalDialog.ModalDialog {
         let titleRow = new St.BoxLayout({ vertical: false });
         let title = new St.Label({ text: "Edit button", style: "font-weight: bold; color: white; font-size: 24px;" });
         titleRow.add(title, { expand: true, x_fill: true, x_align: St.Align.START, y_align: St.Align.MIDDLE });
-        let closeBtn = new St.Button({ style: "width: 36px; height: 36px; border-radius: 18px; background-color: #2D6DD9;" });
+        let closeBtn = new St.Button({ style: "width: 42px; height: 42px; border-radius: 21px; background-color: #2D6DD9; margin-right: -8px; margin-top: -8px;" });
         let closeGicon = makeWhiteIconFile(this._deskletPath, "solid", "xmark");
-        if (closeGicon) closeBtn.set_child(new St.Icon({ gicon: closeGicon, icon_size: 20 }));
+        if (closeGicon) closeBtn.set_child(new St.Icon({ gicon: closeGicon, icon_size: 22 }));
         closeBtn.connect("clicked", () => this.close());
         titleRow.add(closeBtn, { y_align: St.Align.START });
         this.contentLayout.add(titleRow);
 
-        this._labelEntry = new St.Entry({ style_class: "xtream-deck-entry", hint_text: "Enter button label" });
+        this._labelEntry = new St.Entry({ style_class: "xtream-deck-entry", hint_text: "Enter button label", style: "width: 230px;" });
         this._labelEntry.set_text(this._slot.label);
         this.setInitialKeyFocus(this._labelEntry.clutter_text);
 
-        let labelHeaderRow = new St.BoxLayout({ vertical: false, style: "spacing: 10px;" });
-        labelHeaderRow.add(new St.Label({ text: "Label", style_class: "xtream-deck-field-label" }), { expand: true, x_fill: true, x_align: St.Align.START, y_align: St.Align.MIDDLE });
-        labelHeaderRow.add(new St.Label({ text: "Show Title", style_class: "xtream-deck-field-label" }), { y_align: St.Align.MIDDLE });
+        let labelFieldRow = new St.BoxLayout({ vertical: false, style: "spacing: 10px;" });
+        labelFieldRow.add(this._labelEntry, { y_align: St.Align.MIDDLE });
+        labelFieldRow.add(new St.Label({ text: "Show Title", style_class: "xtream-deck-field-label" }), { expand: true, x_fill: true, x_align: St.Align.END, y_align: St.Align.MIDDLE });
         this._showTitleToggle = this._makeToggle(this._slot.showTitle, (value) => { this._slot.showTitle = value; });
-        labelHeaderRow.add(this._showTitleToggle, { y_align: St.Align.MIDDLE });
+        labelFieldRow.add(this._showTitleToggle, { y_align: St.Align.MIDDLE });
 
         let labelGroup = new St.BoxLayout({ vertical: true, style: "spacing: 6px;" });
-        labelGroup.add(labelHeaderRow);
-        labelGroup.add(this._labelEntry);
+        labelGroup.add(new St.Label({ text: "Label", style_class: "xtream-deck-field-label" }));
+        labelGroup.add(labelFieldRow);
         labelGroup.add(new St.Label({ text: "This is the text that will appear on the button. \"Show Title\" controls whether it's drawn under the icon on the grid.", style_class: "xtream-deck-hint" }));
         this.contentLayout.add(labelGroup);
 
@@ -267,7 +267,7 @@ class ButtonEditorDialog extends ModalDialog.ModalDialog {
 
         const render = () => {
             let bg = value ? "#19BC97" : "#e6194b";
-            btn.style = "width: 92px; height: 36px; border-radius: 18px; padding: 4px; background-color: " + bg + ";";
+            btn.style = "width: 92px; height: 36px; border-radius: 24px; padding: 0; background-color: " + bg + ";";
 
             let row = new St.BoxLayout({ vertical: false });
             let thumb = new St.Bin({ style: "width: 26px; height: 26px; border-radius: 13px; background-color: white;" });
