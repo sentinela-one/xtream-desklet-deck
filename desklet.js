@@ -32,7 +32,7 @@ function emptyPage() {
 class IconPickerDialog extends ModalDialog.ModalDialog {
     constructor(deskletPath, onPick) {
         super({ styleClass: "xtream-deck-dialog" });
-        this.contentLayout.style = "spacing: 18px; padding: 22px 30px;";
+        this.contentLayout.style = "spacing: 18px; padding: 22px 22px;";
         this._deskletPath = deskletPath;
         this._onPick = onPick;
         this._manifest = this._loadManifest();
@@ -40,9 +40,9 @@ class IconPickerDialog extends ModalDialog.ModalDialog {
         let titleRow = new St.BoxLayout({ vertical: false });
         let title = new St.Label({ text: "Choose an icon", style: "font-weight: bold; color: white; font-size: 24px;" });
         titleRow.add(title, { expand: true, x_fill: true, x_align: St.Align.START, y_align: St.Align.MIDDLE });
-        let closeBtn = new St.Button({ style: "width: 28px; height: 28px; border-radius: 14px; background-color: #3498db;" });
+        let closeBtn = new St.Button({ style: "width: 36px; height: 36px; border-radius: 18px; background-color: #3498db;" });
         let closeGicon = makeWhiteIconFile(deskletPath, "solid", "xmark");
-        if (closeGicon) closeBtn.set_child(new St.Icon({ gicon: closeGicon, icon_size: 16 }));
+        if (closeGicon) closeBtn.set_child(new St.Icon({ gicon: closeGicon, icon_size: 20 }));
         closeBtn.connect("clicked", () => this.close());
         titleRow.add(closeBtn, { y_align: St.Align.START });
         this.contentLayout.add(titleRow);
@@ -67,7 +67,7 @@ class IconPickerDialog extends ModalDialog.ModalDialog {
         ]);
         let footerChildren = this._buttonLayout.get_children();
         for (let button of footerChildren) {
-            button.style = "padding: 10px 16px; font-size: 15px; border-radius: 6px;";
+            button.style = "background-color: #3498db; border-radius: 12px; padding: 12px 18px; font-size: 15px; color: white;";
         }
     }
 
@@ -121,7 +121,7 @@ class IconPickerDialog extends ModalDialog.ModalDialog {
 class ConfirmDialog extends ModalDialog.ModalDialog {
     constructor(deskletPath, titleText, messageText, confirmLabel, onConfirm) {
         super({ styleClass: "xtream-deck-dialog" });
-        this.contentLayout.style = "spacing: 16px; padding: 22px 30px;";
+        this.contentLayout.style = "spacing: 16px; padding: 22px 22px;";
 
         let title = new St.Label({ text: titleText, style: "font-weight: bold; color: white; font-size: 24px;" });
         this.contentLayout.add(title, { x_align: St.Align.START });
@@ -155,7 +155,7 @@ class ConfirmDialog extends ModalDialog.ModalDialog {
 class ButtonEditorDialog extends ModalDialog.ModalDialog {
     constructor(deskletPath, slot, onSave, onClear) {
         super({ styleClass: "xtream-deck-dialog" });
-        this.contentLayout.style = "spacing: 22px; padding: 22px 30px;";
+        this.contentLayout.style = "spacing: 22px; padding: 22px 22px;";
         this._deskletPath = deskletPath;
         this._slot = { label: slot.label || "", command: slot.command || "", icon: slot.icon || "", color: slot.color || "" };
         this._onSave = onSave;
@@ -164,9 +164,9 @@ class ButtonEditorDialog extends ModalDialog.ModalDialog {
         let titleRow = new St.BoxLayout({ vertical: false });
         let title = new St.Label({ text: "Edit button", style: "font-weight: bold; color: white; font-size: 24px;" });
         titleRow.add(title, { expand: true, x_fill: true, x_align: St.Align.START, y_align: St.Align.MIDDLE });
-        let closeBtn = new St.Button({ style: "width: 28px; height: 28px; border-radius: 14px; background-color: #3498db;" });
+        let closeBtn = new St.Button({ style: "width: 36px; height: 36px; border-radius: 18px; background-color: #3498db;" });
         let closeGicon = makeWhiteIconFile(this._deskletPath, "solid", "xmark");
-        if (closeGicon) closeBtn.set_child(new St.Icon({ gicon: closeGicon, icon_size: 16 }));
+        if (closeGicon) closeBtn.set_child(new St.Icon({ gicon: closeGicon, icon_size: 20 }));
         closeBtn.connect("clicked", () => this.close());
         titleRow.add(closeBtn, { y_align: St.Align.START });
         this.contentLayout.add(titleRow);
@@ -235,26 +235,10 @@ class ButtonEditorDialog extends ModalDialog.ModalDialog {
         return group;
     }
 
-    _iconLabelButtonChild(iconName, text, textColor) {
-        let box = new St.BoxLayout({ vertical: false, style: "spacing: 8px;" });
-        let gicon = makeWhiteIconFile(this._deskletPath, "solid", iconName);
-        if (gicon) box.add(new St.Icon({ gicon: gicon, icon_size: 16 }), { y_align: St.Align.MIDDLE });
-        box.add(new St.Label({ text: text, style: "color: " + textColor + "; font-size: 15px;" }), { y_align: St.Align.MIDDLE });
-        return box;
-    }
-
     _styleFooterButtons() {
         let children = this._buttonLayout.get_children();
         for (let button of children) {
-            if (button.label === "Clear button") {
-                button.style = "padding: 10px 16px; border-radius: 6px;";
-                button.set_child(this._iconLabelButtonChild("trash", "Clear button", "white"));
-            } else if (button.label === "Cancel") {
-                button.style = "padding: 10px 16px; font-size: 15px; border-radius: 6px;";
-            } else if (button.label === "Save") {
-                button.style = "background-color: #3498db; border-radius: 6px; padding: 10px 16px;";
-                button.set_child(this._iconLabelButtonChild("floppy-disk", "Save", "white"));
-            }
+            button.style = "background-color: #3498db; border-radius: 12px; padding: 12px 18px; font-size: 15px; color: white;";
         }
     }
 
