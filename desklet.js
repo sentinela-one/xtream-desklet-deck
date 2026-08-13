@@ -205,7 +205,7 @@ class ButtonEditorDialog extends ModalDialog.ModalDialog {
         showTitleColumn.add(new St.Label({ text: "Show Title", style_class: "xtream-deck-field-label" }), { x_align: St.Align.MIDDLE });
         showTitleColumn.add(this._showTitleToggle, { x_align: St.Align.MIDDLE });
 
-        let fieldRow = new St.BoxLayout({ vertical: false, style: "spacing: 8px;" });
+        let fieldRow = new St.BoxLayout({ vertical: false, style: "spacing: 18px;" });
         fieldRow.add(labelColumn);
         fieldRow.add(showTitleColumn, { y_align: St.Align.START });
 
