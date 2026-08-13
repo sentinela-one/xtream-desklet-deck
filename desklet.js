@@ -1,6 +1,8 @@
 const Desklet = imports.ui.desklet;
 const ModalDialog = imports.ui.modalDialog;
 const Tooltips = imports.ui.tooltips;
+const DND = imports.ui.dnd;
+const Mainloop = imports.mainloop;
 const St = imports.gi.St;
 const Gio = imports.gi.Gio;
 const GLib = imports.gi.GLib;
@@ -614,6 +616,42 @@ class XtreamDeckDesklet extends Desklet.Desklet {
                 this._runCommand(slot.command);
             }
         });
+
+        // Drag-to-swap between slots, edit mode only. No custom getDragActor,
+        // so the button itself is what's dragged - Cinnamon reparents it during
+        // the drag and destroys it on a successful drop, so the actual data
+        // swap + grid rebuild is deferred to the next idle cycle to avoid
+        // fighting the DND framework's own cleanup of that same actor.
+        if (this._editMode) {
+            let desklet = this;
+            button._delegate = {
+                slotIndex: slotIndex,
+                handleDragOver: (source) => {
+                    if (source && source.slotIndex !== undefined && source.slotIndex !== slotIndex) {
+                        return DND.DragMotionResult.MOVE_DROP;
+                    }
+                    return DND.DragMotionResult.NO_DROP;
+                },
+                acceptDrop: (source) => {
+                    if (!source || source.slotIndex === undefined || source.slotIndex === slotIndex) {
+                        return false;
+                    }
+                    let page = desklet._pages[desklet._currentPage];
+                    let a = source.slotIndex;
+                    let b = slotIndex;
+                    let tmp = page.slots[a];
+                    page.slots[a] = page.slots[b];
+                    page.slots[b] = tmp;
+                    desklet._saveState();
+                    Mainloop.idle_add(() => {
+                        desklet._render();
+                        return false;
+                    });
+                    return true;
+                }
+            };
+            DND.makeDraggable(button);
+        }
 
         return button;
     }
