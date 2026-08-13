@@ -40,9 +40,9 @@ class IconPickerDialog extends ModalDialog.ModalDialog {
         let titleRow = new St.BoxLayout({ vertical: false });
         let title = new St.Label({ text: "Choose an icon", style: "font-weight: bold; color: white; font-size: 24px;" });
         titleRow.add(title, { expand: true, x_fill: true, x_align: St.Align.START, y_align: St.Align.MIDDLE });
-        let closeBtn = new St.Button({ style: "width: 28px; height: 28px;" });
+        let closeBtn = new St.Button({ style: "width: 28px; height: 28px; border-radius: 14px; background-color: #3498db; margin-right: -14px; margin-top: -6px;" });
         let closeGicon = makeWhiteIconFile(deskletPath, "solid", "xmark");
-        if (closeGicon) closeBtn.set_child(new St.Icon({ gicon: closeGicon, icon_size: 18 }));
+        if (closeGicon) closeBtn.set_child(new St.Icon({ gicon: closeGicon, icon_size: 16 }));
         closeBtn.connect("clicked", () => this.close());
         titleRow.add(closeBtn, { y_align: St.Align.START });
         this.contentLayout.add(titleRow);
@@ -130,9 +130,9 @@ class ButtonEditorDialog extends ModalDialog.ModalDialog {
         let titleRow = new St.BoxLayout({ vertical: false });
         let title = new St.Label({ text: "Edit button", style: "font-weight: bold; color: white; font-size: 24px;" });
         titleRow.add(title, { expand: true, x_fill: true, x_align: St.Align.START, y_align: St.Align.MIDDLE });
-        let closeBtn = new St.Button({ style: "width: 28px; height: 28px;" });
+        let closeBtn = new St.Button({ style: "width: 28px; height: 28px; border-radius: 14px; background-color: #3498db; margin-right: -14px; margin-top: -6px;" });
         let closeGicon = makeWhiteIconFile(this._deskletPath, "solid", "xmark");
-        if (closeGicon) closeBtn.set_child(new St.Icon({ gicon: closeGicon, icon_size: 18 }));
+        if (closeGicon) closeBtn.set_child(new St.Icon({ gicon: closeGicon, icon_size: 16 }));
         closeBtn.connect("clicked", () => this.close());
         titleRow.add(closeBtn, { y_align: St.Align.START });
         this.contentLayout.add(titleRow);
