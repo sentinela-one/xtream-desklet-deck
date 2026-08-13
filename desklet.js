@@ -217,7 +217,7 @@ class ButtonEditorDialog extends ModalDialog.ModalDialog {
         this.contentLayout.add(this._makeFieldGroup("Command", this._commandEntry, "Command or script to run when the button is clicked."));
 
         this._iconDropzone = new St.Button({
-            style: "width: 460px; background-color: rgba(255,255,255,0.05); border: 2px dashed rgba(255,255,255,0.5); border-radius: 8px; padding: 12px;"
+            style: "width: 460px; background-color: rgba(255,255,255,0.05); border: 2px solid rgba(255,255,255,0.5); border-radius: 8px; padding: 12px;"
         });
         let iconRow = new St.BoxLayout({ vertical: false, style: "spacing: 16px;" });
         this._iconPreview = new St.Bin({ style: "width: 44px; height: 44px; background-color: rgba(255,255,255,0.1); border-radius: 6px;" });
@@ -244,7 +244,7 @@ class ButtonEditorDialog extends ModalDialog.ModalDialog {
                 let selected = entry.colorValue === this._slot.color;
                 let border = selected
                     ? "border: 3px solid white;"
-                    : (entry.colorValue === "" ? "border: 2px dashed rgba(255,255,255,0.5);" : "border: none;");
+                    : (entry.colorValue === "" ? "border: 2px solid rgba(255,255,255,0.5);" : "border: none;");
                 let bg = entry.colorValue ? "background-color: " + entry.colorValue + ";" : "";
                 entry.button.style = "width: 34px; height: 34px; border-radius: 8px; " + bg + " " + border;
             }
@@ -555,7 +555,7 @@ class XtreamDeckDesklet extends Desklet.Desklet {
         let button = new St.Button({
             style: "width: " + BUTTON_SIZE + "px; height: " + BUTTON_SIZE + "px; margin: 3px; " +
                    "background-color: " + bgColor + "; border-radius: 10px; " +
-                   (this._editMode ? "border: 2px dashed rgba(255,255,255,0.8);" : "border: 2px dashed rgba(255,255,255,0.5);")
+                   (this._editMode ? "border: 2px solid rgba(255,255,255,0.8);" : "border: 2px solid rgba(255,255,255,0.5);")
         });
 
         let box = new St.BoxLayout({ vertical: true, x_align: St.Align.MIDDLE });
