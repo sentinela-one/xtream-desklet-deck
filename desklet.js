@@ -444,11 +444,11 @@ class ButtonEditorDialog extends ModalDialog.ModalDialog {
 
         const render = () => {
             let bg = value ? "#19BC97" : "#e6194b";
-            // Asymmetric padding (CSS "top right bottom left" shorthand): whichever
-            // side the thumb sits on gets almost none, so it hugs that edge - OFF's
-            // thumb sits left, ON's sits right. The far side keeps normal padding for
-            // the ON/OFF text.
-            let padding = value ? "0 1px 0 6px" : "0 6px 0 1px";
+            // Asymmetric padding (CSS "top right bottom left" shorthand): zero on
+            // whichever side the thumb sits on, so it touches that edge exactly -
+            // OFF's thumb sits left, ON's sits right. The far side keeps normal
+            // padding for the ON/OFF text.
+            let padding = value ? "0 0 0 6px" : "0 6px 0 0";
             btn.style = "width: 84px; height: " + h + "px; border-radius: " + (h / 2) + "px; padding: " + padding + "; background-color: " + bg + ";";
 
             let row = new St.BoxLayout({ vertical: false, style: "spacing: 6px;" });
