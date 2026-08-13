@@ -4,13 +4,14 @@ A lightweight, native Stream Deck-style button grid for the **Cinnamon desktop**
 other Cinnamon-based distros). No heavy background app, no separate process — it's a regular
 Cinnamon desklet, so it's basically free in terms of CPU/RAM.
 
-Each instance shows a 5x2 grid of 10 buttons. You configure each button with:
-- a **label** (text shown under the icon),
-- a **command** (any shell command or script path, run when you click the button),
-- an **icon** (pick any system icon, or point to your own image file).
+Each instance shows a 5x2 grid of buttons, with up to 3 pages (30 buttons total per instance).
+Every button has its own label, command, icon, and background color — all configured directly
+inside the panel, no external settings screen needed. Comes with the full [Font Awesome
+Free](https://fontawesome.com) icon set (7.3.1, ~2,900 icons) bundled in, so you don't need
+anything installed on your system to have icons available.
 
-You can add **multiple instances** on your desktop (e.g. one deck per task/workflow) — each one
-keeps its own independent set of 10 buttons.
+You can add **multiple instances** on your desktop — each one keeps its own independent
+configuration.
 
 ## Why this exists
 
@@ -43,11 +44,24 @@ a native Cinnamon desklet does the same job for a fraction of the resource cost.
    - Find **Xtream Deck** in the list and click **Add** (or double-click it).
    - Repeat this step again if you want a second independent deck.
 
-4. Configure your buttons:
-   - Hover over the desklet, click the small gear/settings icon that appears on top of it.
-   - For each of the 10 slots, fill in **Label**, **Command**, and pick an **Icon**.
-   - Leave **Command** empty on a slot to keep that button disabled/blank.
-   - Changes apply immediately, no restart needed.
+## Configuring your buttons
+
+Everything is configured from inside the panel itself — there's no separate settings window.
+
+1. Click the small **gear icon** in the top-right corner of the deck to enter edit mode (the gear
+   highlights while active).
+2. Click any button to open its editor:
+   - **Label** — text shown under the icon (optional).
+   - **Command** — any shell command or script path, run when you click the button.
+   - **Icon** — click **Pick icon…** and search the bundled Font Awesome set (type e.g.
+     `microphone`, `camera`, `play`); you can also leave the field pointing to a custom image
+     path or a themed system icon name if you edit it directly in the state file (see below).
+   - **Color** — pick a background color from the palette, or clear it.
+   - **Clear button** wipes the slot back to empty.
+3. Click the **gear icon** again to leave edit mode — buttons now run their command on click
+   instead of opening the editor.
+4. Use the numbered dots at the bottom to switch pages. While in edit mode, a **+** button appears
+   next to them to add a new page (up to 3 pages per deck).
 
 ### Example button
 
@@ -55,7 +69,7 @@ a native Cinnamon desklet does the same job for a fraction of the resource cost.
 |---------|-------|
 | Label   | `Mute` |
 | Command | `amixer set Master toggle` |
-| Icon    | pick `audio-volume-muted-symbolic` from the icon chooser |
+| Icon    | search `microphone-slash` in the icon picker |
 
 Any shell command works: launching an app, running a script you wrote, toggling something via
 `amixer`/`nmcli`/`obs-cmd`/whatever CLI tool you have — if it runs from a terminal, it runs from a
@@ -73,18 +87,28 @@ button here.
 
 - `metadata.json` — desklet identity (uuid, name, `max-instances: -1` so you can add as many as
   you want).
-- `settings-schema.json` — defines the 10 configurable slots (label/command/icon per slot); this
-  is what makes the gear-icon settings screen appear in Cinnamon.
-- `desklet.js` — renders the 5x2 button grid and runs the configured command on click
-  (`Util.spawnCommandLine`), using Cinnamon's own `St`/`Clutter` toolkit — no extra runtime.
+- `desklet.js` — renders the header/grid/pagination, the in-panel edit mode and dialogs, and runs
+  the configured command on click (`Util.spawnCommandLine`), using Cinnamon's own `St`/`Clutter`
+  toolkit — no extra runtime.
+- `icons/fontawesome/` — the bundled Font Awesome Free 7.3.1 icon set (`solid`, `regular`,
+  `brands`) plus `manifest.json` used to power the in-panel icon search, and the upstream
+  `LICENSE.txt`. See [Attribution](#attribution) below.
 
-Per-instance button configuration is stored by Cinnamon itself under
-`~/.config/cinnamon/spices-data/desklet-xtream@oliveirawro/`, not inside this repository — so
-your personal commands, paths, and icons never need to touch this repo or any fork of it.
+Each instance's button configuration (labels, commands, icons, colors, pages) is stored as plain
+JSON at `~/.config/desklet-xtream/instances/<instance-id>.json` — not inside this repository, so
+your personal commands and paths never need to touch this repo or any fork of it.
+
+## Attribution
+
+Icons: [Font Awesome Free](https://fontawesome.com) by Fonticons, Inc., licensed under
+[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) (icons) and
+[SIL OFL 1.1](https://scripts.sil.org/OFL) (fonts, unused here — this project only uses the SVG
+icon files). Full license text bundled at `icons/fontawesome/LICENSE.txt`.
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT — see [LICENSE](LICENSE). (Note: the bundled Font Awesome assets under `icons/fontawesome/`
+keep their own upstream license, see above.)
 
 ## Author
 
