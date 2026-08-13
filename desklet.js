@@ -622,6 +622,14 @@ class XtreamDeckDesklet extends Desklet.Desklet {
                 this._saveState();
                 this._render();
             });
+            if (p >= 1) {
+                dot.connect("button-release-event", (actor, event) => {
+                    if (event.get_button() === 3) {
+                        this._confirmRemovePage(p);
+                    }
+                    return false;
+                });
+            }
             this._footer.add(dot);
         }
 
@@ -635,6 +643,29 @@ class XtreamDeckDesklet extends Desklet.Desklet {
             });
             this._footer.add(addBtn);
         }
+    }
+
+    _confirmRemovePage(pageIndex) {
+        let dialog = new ConfirmDialog(
+            this._metadata.path,
+            "Remove page " + (pageIndex + 1) + "?",
+            "This will permanently delete all buttons configured on this page. This cannot be undone.",
+            "Remove Page",
+            () => this._removePage(pageIndex)
+        );
+        dialog.open();
+    }
+
+    _removePage(pageIndex) {
+        if (pageIndex === 0 || this._pages.length <= 1) return;
+        this._pages.splice(pageIndex, 1);
+        if (this._currentPage >= this._pages.length) {
+            this._currentPage = this._pages.length - 1;
+        } else if (this._currentPage > pageIndex) {
+            this._currentPage -= 1;
+        }
+        this._saveState();
+        this._render();
     }
 }
 
