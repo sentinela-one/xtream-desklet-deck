@@ -1,5 +1,6 @@
 const Desklet = imports.ui.desklet;
 const ModalDialog = imports.ui.modalDialog;
+const Tooltips = imports.ui.tooltips;
 const St = imports.gi.St;
 const Gio = imports.gi.Gio;
 const GLib = imports.gi.GLib;
@@ -120,6 +121,8 @@ class IconPickerDialog extends ModalDialog.ModalDialog {
             } else {
                 btn.set_child(new St.Label({ text: "?", style: "color: white;" }));
             }
+            let tooltip = new Tooltips.Tooltip(btn, item.name);
+            tooltip._tooltip.style = "font-size: 20px; font-weight: bold; padding: 8px 14px;";
             btn.connect("clicked", () => {
                 this._onPick("fa:" + item.style + ":" + item.name);
                 this.close();
