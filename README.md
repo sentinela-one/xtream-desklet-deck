@@ -1,17 +1,23 @@
 # Xtream Deck
 
-A lightweight, native Stream Deck-style button grid for the **Cinnamon desktop** (Linux Mint and
-other Cinnamon-based distros). No heavy background app, no separate process — it's a regular
-Cinnamon desklet, so it's basically free in terms of CPU/RAM.
+A lightweight, native Stream Deck-style button grid for the **Cinnamon desktop**. No heavy
+background app, no separate process — it's a regular Cinnamon desklet, so it's basically free in
+terms of CPU/RAM.
 
 Each instance shows a 5x2 grid of buttons, with up to 5 pages (50 buttons total per instance).
 Every button has its own label, command, icon, and background color — all configured directly
 inside the panel, no external settings screen needed. Comes with the full [Font Awesome
 Free](https://fontawesome.com) icon set (7.3.1, ~2,900 icons) bundled in, so you don't need
-anything installed on your system to have icons available.
+anything installed on your system to have icons available, plus support for uploading your own
+PNG icons and picking any custom hex color for a button's background.
 
 You can add **multiple instances** on your desktop — each one keeps its own independent
 configuration.
+
+**Compatibility**: built against and validated on **Linux Mint 21.2 "Victoria" (Cinnamon 5.8.4)**.
+It's plain Cinnamon `St`/`Clutter` desklet code with no Mint-specific dependency, so it's expected
+to work on other Cinnamon-based distros and other Cinnamon 4.x/5.x versions too — just not
+individually tested against every one of them.
 
 ## Why this exists
 
@@ -21,8 +27,11 @@ a native Cinnamon desklet does the same job for a fraction of the resource cost.
 
 ## Requirements
 
-- A Cinnamon desktop (Linux Mint Cinnamon edition, or any distro running Cinnamon 4.x+).
+- A Cinnamon desktop (Linux Mint Cinnamon edition, or any distro running Cinnamon 4.x+ — validated
+  on Linux Mint 21.2/Cinnamon 5.8.4, see above).
 - `git` installed.
+- `zenity` installed for the custom PNG icon upload picker (already present by default on most
+  Cinnamon/GTK desktops, including Linux Mint).
 
 ## Installation
 
@@ -52,7 +61,8 @@ Everything is configured from inside the panel itself — there's no separate se
    highlights while active). Buttons that already have an icon show that icon; empty slots show a
    pencil to mark them as clickable.
 2. Click any button to open its editor:
-   - **Label** — text shown under the icon.
+   - **Label** — text shown under the icon. Its color automatically switches between black and
+     white depending on the button's own background color, so it stays readable either way.
    - **Show Title** — toggle next to the label field; turns the label under the icon on/off on
      the grid without deleting the text.
    - **Command** — any shell command or script path, run when you click the button.
@@ -60,12 +70,13 @@ Everything is configured from inside the panel itself — there's no separate se
      `microphone`, `camera`, `play`; hover a result to see its full name before picking it), or
      upload your own PNG (max 2MB) from the panel next to it.
    - **Color** — pick a background color from the palette (the selected swatch gets a white
-     border), or clear it back to the default dark background.
+     border), clear it back to the default dark background, or type any custom color as a hex
+     value (e.g. `#CC99CC`) in the field next to the palette.
    - **Clear button** wipes the slot back to empty. **Save**/**Cancel**/the **X** close the
      editor; closing without saving discards your changes.
 3. **Reorder buttons**: still in edit mode, drag a button onto another one — they swap places.
 4. Click the **gear icon** again to leave edit mode — buttons now run their command on click
-   instead of opening the editor.
+   instead of opening the editor. **Esc** also exits edit mode.
 5. Use the numbered dots at the bottom to switch pages. While in edit mode, a **+** button appears
    next to them to add a new page (up to 5 pages per deck, confirmation required). Right-click any
    dot except the first one to remove that page (confirmation required — this deletes every button
@@ -111,7 +122,9 @@ stored as plain JSON at `~/.config/xtream-desklet-deck/instances/<instance-id>.j
 this repository, so your personal commands and paths never need to touch this repo or any fork of
 it. If an instance's own state file doesn't exist yet (e.g. right after removing and re-adding the
 desklet, which Cinnamon gives a new instance id), it falls back to the most recently saved state
-file instead of starting empty.
+file instead of starting empty. Custom PNG icons you upload are copied into
+`~/.config/xtream-desklet-deck/custom_icons/` for the same reason — kept alongside your instance
+state, not wherever the original file happened to live.
 
 ## Attribution
 
