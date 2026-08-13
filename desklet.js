@@ -193,17 +193,22 @@ class ButtonEditorDialog extends ModalDialog.ModalDialog {
 
         this._showTitleToggle = this._makeToggle(this._slot.showTitle, (value) => { this._slot.showTitle = value; }, 40);
 
-        let headerRow = new St.BoxLayout({ vertical: false });
-        headerRow.add(new St.Label({ text: "Label", style_class: "xtream-deck-field-label" }), { expand: true, x_fill: true, x_align: St.Align.START, y_align: St.Align.MIDDLE });
-        headerRow.add(new St.Label({ text: "Show Title", style_class: "xtream-deck-field-label" }), { y_align: St.Align.MIDDLE });
+        // A table (instead of two independent rows) guarantees the "Show Title"
+        // header lines up exactly above the toggle, in a column that sits right
+        // after the entry field rather than pinned to the dialog's right edge.
+        let showTitleHeaderWrap = new St.Bin({ style: "margin-left: 20px; margin-bottom: 6px;" });
+        showTitleHeaderWrap.set_child(new St.Label({ text: "Show Title", style_class: "xtream-deck-field-label" }));
+        let toggleWrap = new St.Bin({ style: "margin-left: 20px;" });
+        toggleWrap.set_child(this._showTitleToggle);
 
-        let fieldRow = new St.BoxLayout({ vertical: false, style: "spacing: 14px;" });
-        fieldRow.add(this._labelEntry, { y_align: St.Align.MIDDLE });
-        fieldRow.add(this._showTitleToggle, { expand: true, x_fill: false, x_align: St.Align.END, y_align: St.Align.MIDDLE });
+        let fieldTable = new St.Table({ homogeneous: false });
+        fieldTable.add(new St.Label({ text: "Label", style_class: "xtream-deck-field-label", style: "margin-bottom: 6px;" }), { row: 0, col: 0, x_align: St.Align.START });
+        fieldTable.add(showTitleHeaderWrap, { row: 0, col: 1, x_align: St.Align.START });
+        fieldTable.add(this._labelEntry, { row: 1, col: 0, x_align: St.Align.START });
+        fieldTable.add(toggleWrap, { row: 1, col: 1, x_align: St.Align.START, y_align: St.Align.MIDDLE });
 
         let labelGroup = new St.BoxLayout({ vertical: true, style: "spacing: 6px;" });
-        labelGroup.add(headerRow);
-        labelGroup.add(fieldRow);
+        labelGroup.add(fieldTable);
         labelGroup.add(new St.Label({ text: "This is the text that will appear on the button. \"Show Title\" controls whether it's drawn under the icon on the grid.", style_class: "xtream-deck-hint" }));
         this.contentLayout.add(labelGroup);
 
