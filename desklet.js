@@ -184,15 +184,18 @@ class ButtonEditorDialog extends ModalDialog.ModalDialog {
         titleRow.add(closeBtn, { y_align: St.Align.START });
         this.contentLayout.add(titleRow);
 
-        this._labelEntry = new St.Entry({ style_class: "xtream-deck-entry", hint_text: "Enter button label", style: "width: 230px;" });
+        this._labelEntry = new St.Entry({ style_class: "xtream-deck-entry", hint_text: "Enter button label", style: "width: 300px;" });
         this._labelEntry.set_text(this._slot.label);
         this.setInitialKeyFocus(this._labelEntry.clutter_text);
 
-        let labelFieldRow = new St.BoxLayout({ vertical: false, style: "spacing: 10px;" });
-        labelFieldRow.add(this._labelEntry, { y_align: St.Align.MIDDLE });
-        labelFieldRow.add(new St.Label({ text: "Show Title", style_class: "xtream-deck-field-label" }), { expand: true, x_fill: true, x_align: St.Align.END, y_align: St.Align.MIDDLE });
+        let showTitleColumn = new St.BoxLayout({ vertical: true, style: "spacing: 4px;" });
+        showTitleColumn.add(new St.Label({ text: "Show Title", style_class: "xtream-deck-field-label" }), { x_align: St.Align.MIDDLE });
         this._showTitleToggle = this._makeToggle(this._slot.showTitle, (value) => { this._slot.showTitle = value; });
-        labelFieldRow.add(this._showTitleToggle, { y_align: St.Align.MIDDLE });
+        showTitleColumn.add(this._showTitleToggle, { x_align: St.Align.MIDDLE });
+
+        let labelFieldRow = new St.BoxLayout({ vertical: false, style: "spacing: 14px;" });
+        labelFieldRow.add(this._labelEntry, { y_align: St.Align.MIDDLE });
+        labelFieldRow.add(showTitleColumn, { expand: true, x_fill: false, x_align: St.Align.END, y_align: St.Align.END });
 
         let labelGroup = new St.BoxLayout({ vertical: true, style: "spacing: 6px;" });
         labelGroup.add(new St.Label({ text: "Label", style_class: "xtream-deck-field-label" }));
@@ -267,11 +270,11 @@ class ButtonEditorDialog extends ModalDialog.ModalDialog {
 
         const render = () => {
             let bg = value ? "#19BC97" : "#e6194b";
-            btn.style = "width: 92px; height: 36px; border-radius: 24px; padding: 0; background-color: " + bg + ";";
+            btn.style = "width: 84px; height: 26px; border-radius: 16px; padding: 0 4px; background-color: " + bg + ";";
 
-            let row = new St.BoxLayout({ vertical: false });
-            let thumb = new St.Bin({ style: "width: 26px; height: 26px; border-radius: 13px; background-color: white;" });
-            let text = new St.Label({ text: value ? "ON" : "OFF", style: "color: white; font-size: 13px; font-weight: bold;" });
+            let row = new St.BoxLayout({ vertical: false, style: "spacing: 6px;" });
+            let thumb = new St.Bin({ style: "width: 20px; height: 20px; border-radius: 10px; background-color: white;" });
+            let text = new St.Label({ text: value ? "ON" : "OFF", style: "color: white; font-size: 12px; font-weight: bold;" });
             let textBin = new St.Bin({ x_align: St.Align.MIDDLE, y_align: St.Align.MIDDLE });
             textBin.set_child(text);
 
