@@ -547,15 +547,20 @@ class XtreamDeckDesklet extends Desklet.Desklet {
         let button = new St.Button({
             style: "width: " + BUTTON_SIZE + "px; height: " + BUTTON_SIZE + "px; margin: 3px; " +
                    "background-color: " + bgColor + "; border-radius: 10px; " +
-                   (this._editMode ? "border: 1px dashed rgba(255,255,255,0.5);" : "border: 1px solid rgba(255,255,255,0.12);")
+                   (this._editMode ? "border: 1px dashed rgba(255,255,255,0.5);" : "border: 1px dashed rgba(255,255,255,0.2);")
         });
 
         let box = new St.BoxLayout({ vertical: true, x_align: St.Align.MIDDLE });
 
-        if (this._editMode) {
+        if (this._editMode && !slot.icon) {
             let pencilGicon = makeWhiteIconFile(this._metadata.path, "solid", "pen-to-square");
             if (pencilGicon) {
                 box.add(new St.Icon({ gicon: pencilGicon, icon_size: ICON_SIZE, opacity: 210 }), { x_fill: false, x_align: St.Align.MIDDLE });
+            }
+        } else if (this._editMode) {
+            let gicon = resolveIconGicon(this._metadata.path, slot.icon);
+            if (gicon) {
+                box.add(new St.Icon({ gicon: gicon, icon_size: ICON_SIZE }), { x_fill: false, x_align: St.Align.MIDDLE });
             }
         } else {
             let gicon = resolveIconGicon(this._metadata.path, slot.icon);
