@@ -18,6 +18,19 @@ const PALETTE = [
     "#1abc9c", "#34495e", "#7f8c8d", "#2c2c2c", "#e91e8c"
 ];
 
+const FOOTER_BUTTON_STYLE_BASE = "border: none; border-radius: 16px; padding: 12px 18px; font-size: 18px; font-weight: normal; color: white; min-width: 120px; background-color: #2D6DD9;";
+const FOOTER_BUTTON_STYLE_HOVER = "border: none; border-radius: 16px; padding: 12px 18px; font-size: 18px; font-weight: normal; color: white; min-width: 120px; background-color: #FF4D00;";
+
+// Inline-style the dialog footer buttons (Cinnamon's stylesheet reload for xlets is
+// unreliable, so we avoid relying on an external CSS class here) and drive the hover
+// color change directly off St.Button's own "hover" state.
+function styleFooterButton(button) {
+    button.style = FOOTER_BUTTON_STYLE_BASE;
+    button.connect("notify::hover", () => {
+        button.style = button.hover ? FOOTER_BUTTON_STYLE_HOVER : FOOTER_BUTTON_STYLE_BASE;
+    });
+}
+
 function emptySlot() {
     return { label: "", command: "", icon: "", color: "" };
 }
@@ -67,7 +80,7 @@ class IconPickerDialog extends ModalDialog.ModalDialog {
         ]);
         this._buttonLayout.style = "spacing: 14px;";
         for (let button of this._buttonLayout.get_children()) {
-            button.add_style_class_name("xtream-deck-footer-button");
+            styleFooterButton(button);
         }
     }
 
@@ -238,7 +251,7 @@ class ButtonEditorDialog extends ModalDialog.ModalDialog {
     _iconLabelButtonChild(iconName, text) {
         let box = new St.BoxLayout({ vertical: false, style: "spacing: 8px;" });
         let gicon = makeWhiteIconFile(this._deskletPath, "solid", iconName);
-        if (gicon) box.add(new St.Icon({ gicon: gicon, icon_size: 24 }), { y_align: St.Align.MIDDLE });
+        if (gicon) box.add(new St.Icon({ gicon: gicon, icon_size: 18 }), { y_align: St.Align.MIDDLE });
         box.add(new St.Label({ text: text, style: "color: white; font-size: 18px; font-weight: normal;" }), { y_align: St.Align.MIDDLE });
         return box;
     }
@@ -248,7 +261,7 @@ class ButtonEditorDialog extends ModalDialog.ModalDialog {
         let children = this._buttonLayout.get_children();
         for (let button of children) {
             let originalLabel = button.label;
-            button.add_style_class_name("xtream-deck-footer-button");
+            styleFooterButton(button);
             if (originalLabel === "Clear button") {
                 button.label = "";
                 button.set_child(this._iconLabelButtonChild("trash", "Clear button"));
@@ -325,21 +338,60 @@ class XtreamDeckDesklet extends Desklet.Desklet {
 
     _loadState() {
         this._pages = [emptyPage()];
-        try {
-            let [ok, contents] = GLib.file_get_contents(this._statePath);
-            if (ok) {
-                let data = JSON.parse(ByteArray.toString(contents));
-                if (data && Array.isArray(data.pages) && data.pages.length > 0) {
-                    this._pages = data.pages;
-                }
-                if (typeof data.currentPage === "number") {
-                    this._currentPage = data.currentPage;
-                }
+        if (!this._loadStateFrom(this._statePath)) {
+            // Cinnamon assigns a new instance id (desklet_id) every time this desklet
+            // is removed and re-added to the desktop, so a fresh instance normally has
+            // no state file of its own yet. Recover the most recently saved state from
+            // any other instance instead of starting from empty, so the user's button
+            // configuration survives a remove/re-add (e.g. done to force a stylesheet
+            // reload) instead of appearing to reset.
+            let fallback = this._findMostRecentStateFile();
+            if (fallback) {
+                this._loadStateFrom(fallback);
             }
-        } catch (e) {
-            // No saved state yet - start with a single empty page.
         }
         if (this._currentPage >= this._pages.length) this._currentPage = 0;
+    }
+
+    _loadStateFrom(path) {
+        try {
+            let [ok, contents] = GLib.file_get_contents(path);
+            if (!ok) return false;
+            let data = JSON.parse(ByteArray.toString(contents));
+            if (!data || !Array.isArray(data.pages) || data.pages.length === 0) return false;
+            this._pages = data.pages;
+            if (typeof data.currentPage === "number") {
+                this._currentPage = data.currentPage;
+            }
+            return true;
+        } catch (e) {
+            return false;
+        }
+    }
+
+    _findMostRecentStateFile() {
+        try {
+            let dirPath = GLib.path_get_dirname(this._statePath);
+            let dir = Gio.File.new_for_path(dirPath);
+            if (!dir.query_exists(null)) return null;
+            let enumerator = dir.enumerate_children("standard::name,time::modified", Gio.FileQueryInfoFlags.NONE, null);
+            let newestPath = null;
+            let newestSeconds = 0;
+            let info;
+            while ((info = enumerator.next_file(null)) !== null) {
+                let name = info.get_name();
+                if (!name.endsWith(".json")) continue;
+                let seconds = info.get_modification_time().tv_sec;
+                if (seconds > newestSeconds) {
+                    newestSeconds = seconds;
+                    newestPath = dirPath + "/" + name;
+                }
+            }
+            return newestPath;
+        } catch (e) {
+            global.logError("desklet-xtream: failed to scan instance state files: " + e);
+            return null;
+        }
     }
 
     _saveState() {
