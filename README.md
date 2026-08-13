@@ -49,19 +49,26 @@ a native Cinnamon desklet does the same job for a fraction of the resource cost.
 Everything is configured from inside the panel itself — there's no separate settings window.
 
 1. Click the small **gear icon** in the top-right corner of the deck to enter edit mode (the gear
-   highlights while active).
+   highlights while active). Buttons that already have an icon show that icon; empty slots show a
+   pencil to mark them as clickable.
 2. Click any button to open its editor:
-   - **Label** — text shown under the icon (optional).
+   - **Label** — text shown under the icon.
+   - **Show Title** — toggle next to the label field; turns the label under the icon on/off on
+     the grid without deleting the text.
    - **Command** — any shell command or script path, run when you click the button.
    - **Icon** — click **Pick icon…** and search the bundled Font Awesome set (type e.g.
-     `microphone`, `camera`, `play`); you can also leave the field pointing to a custom image
-     path or a themed system icon name if you edit it directly in the state file (see below).
-   - **Color** — pick a background color from the palette, or clear it.
-   - **Clear button** wipes the slot back to empty.
-3. Click the **gear icon** again to leave edit mode — buttons now run their command on click
+     `microphone`, `camera`, `play`); hover a result to see its full name before picking it.
+   - **Color** — pick a background color from the palette (the selected swatch gets a white
+     border), or clear it back to the default dark background.
+   - **Clear button** wipes the slot back to empty. **Save**/**Cancel**/the **X** close the
+     editor; closing without saving discards your changes.
+3. **Reorder buttons**: still in edit mode, drag a button onto another one — they swap places.
+4. Click the **gear icon** again to leave edit mode — buttons now run their command on click
    instead of opening the editor.
-4. Use the numbered dots at the bottom to switch pages. While in edit mode, a **+** button appears
-   next to them to add a new page (up to 3 pages per deck).
+5. Use the numbered dots at the bottom to switch pages. While in edit mode, a **+** button appears
+   next to them to add a new page (up to 3 pages per deck, confirmation required). Right-click any
+   dot except the first one to remove that page (confirmation required — this deletes every button
+   configured on it).
 
 ### Example button
 
@@ -73,7 +80,9 @@ Everything is configured from inside the panel itself — there's no separate se
 
 Any shell command works: launching an app, running a script you wrote, toggling something via
 `amixer`/`nmcli`/`obs-cmd`/whatever CLI tool you have — if it runs from a terminal, it runs from a
-button here.
+button here. A common pattern is a button that opens VS Code in a project and, via a
+`.vscode/tasks.json` with `"runOptions": {"runOn": "folderOpen"}` in that project, has Claude Code
+already running in the integrated terminal by the time the window opens.
 
 ## Uninstalling
 
@@ -87,16 +96,20 @@ button here.
 
 - `metadata.json` — desklet identity (uuid, name, `max-instances: -1` so you can add as many as
   you want).
-- `desklet.js` — renders the header/grid/pagination, the in-panel edit mode and dialogs, and runs
-  the configured command on click (`Util.spawnCommandLine`), using Cinnamon's own `St`/`Clutter`
-  toolkit — no extra runtime.
+- `desklet.js` — renders the header/grid/pagination, the in-panel edit mode and dialogs
+  (`ButtonEditorDialog`, `IconPickerDialog`, `ConfirmDialog`), drag-to-swap reordering (Cinnamon's
+  native `imports.ui.dnd`), and runs the configured command on click (`Util.spawnCommandLine`),
+  using Cinnamon's own `St`/`Clutter` toolkit — no extra runtime.
 - `icons/fontawesome/` — the bundled Font Awesome Free 7.3.1 icon set (`solid`, `regular`,
   `brands`) plus `manifest.json` used to power the in-panel icon search, and the upstream
   `LICENSE.txt`. See [Attribution](#attribution) below.
 
-Each instance's button configuration (labels, commands, icons, colors, pages) is stored as plain
-JSON at `~/.config/xtream-desklet-deck/instances/<instance-id>.json` — not inside this repository, so
-your personal commands and paths never need to touch this repo or any fork of it.
+Each instance's button configuration (labels, commands, icons, colors, show-title flag, pages) is
+stored as plain JSON at `~/.config/xtream-desklet-deck/instances/<instance-id>.json` — not inside
+this repository, so your personal commands and paths never need to touch this repo or any fork of
+it. If an instance's own state file doesn't exist yet (e.g. right after removing and re-adding the
+desklet, which Cinnamon gives a new instance id), it falls back to the most recently saved state
+file instead of starting empty.
 
 ## Attribution
 
