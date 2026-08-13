@@ -444,7 +444,7 @@ class ButtonEditorDialog extends ModalDialog.ModalDialog {
 
         const render = () => {
             let bg = value ? "#19BC97" : "#e6194b";
-            btn.style = "width: 84px; height: " + h + "px; border-radius: " + (h / 2) + "px; padding: 0 4px; background-color: " + bg + ";";
+            btn.style = "width: 84px; height: " + h + "px; border-radius: " + (h / 2) + "px; padding: 0 2px; background-color: " + bg + ";";
 
             let row = new St.BoxLayout({ vertical: false, style: "spacing: 6px;" });
             let thumb = new St.Bin({ style: "width: " + thumbSize + "px; height: " + thumbSize + "px; border-radius: " + (thumbSize / 2) + "px; background-color: white;" });
