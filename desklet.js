@@ -565,6 +565,10 @@ class XtreamDeckDesklet extends Desklet.Desklet {
 
         let button = new St.Button({ style: baseStyle() });
 
+        if (slot.label) {
+            new Tooltips.Tooltip(button, slot.label);
+        }
+
         // "Inchadinha": grows slightly and brightens on hover, same pattern used
         // across the gimmyclues app (.btn-secondary-purple:hover -> scale(1.04)).
         button.set_pivot_point(0.5, 0.5);
