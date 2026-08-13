@@ -1,6 +1,7 @@
 const Desklet = imports.ui.desklet;
 const ModalDialog = imports.ui.modalDialog;
 const Tooltips = imports.ui.tooltips;
+const PopupMenu = imports.ui.popupMenu;
 const Main = imports.ui.main;
 const Mainloop = imports.mainloop;
 const St = imports.gi.St;
@@ -19,6 +20,8 @@ const BUTTON_SIZE = 64;
 const SLOT_MARGIN = 7;
 const GRID_EDIT_BORDER_COLOR = "rgba(255,255,255,0.8)";
 const CUSTOM_ICON_MAX_BYTES = 2 * 1024 * 1024;
+const DONATE_URL = "https://ko-fi.com/oliveirawro";
+const DONATE_COIN_COLOR = "#FFC107";
 
 const PALETTE = [
     "#e6194b", "#e91e8c", "#f39c12", "#9b59b6", "#2D6DD9",
@@ -514,19 +517,23 @@ class ButtonEditorDialog extends ModalDialog.ModalDialog {
     }
 }
 
-// Recolor a Font Awesome SVG (fill="currentColor") to white and cache it,
-// so icons stay legible on any background color.
-function makeWhiteIconFile(deskletPath, style, name) {
+// Recolor a Font Awesome SVG (fill="currentColor") - white by default, so icons stay
+// legible on any background color, or an explicit hexColor (e.g. the donate coin) -
+// and cache it. Cache filename only gets a color suffix for non-white recolors, so
+// existing white icon caches stay untouched.
+function makeWhiteIconFile(deskletPath, style, name, hexColor) {
+    let color = hexColor || "#ffffff";
     try {
         let cacheDir = GLib.get_user_cache_dir() + "/xtream-desklet-deck/icons";
         GLib.mkdir_with_parents(cacheDir, 0o755);
-        let cachedPath = cacheDir + "/" + style + "-" + name + ".svg";
+        let suffix = color === "#ffffff" ? "" : "-" + color.replace("#", "");
+        let cachedPath = cacheDir + "/" + style + "-" + name + suffix + ".svg";
         let cacheFile = Gio.File.new_for_path(cachedPath);
         if (!cacheFile.query_exists(null)) {
             let srcPath = deskletPath + "/icons/fontawesome/" + style + "/" + name + ".svg";
             let [ok, contents] = GLib.file_get_contents(srcPath);
             if (!ok) return null;
-            let svg = ByteArray.toString(contents).replace(/currentColor/g, "#ffffff");
+            let svg = ByteArray.toString(contents).replace(/currentColor/g, color);
             GLib.file_set_contents(cachedPath, svg);
         }
         return Gio.icon_new_for_string(cachedPath);
@@ -712,6 +719,25 @@ class XtreamDeckDesklet extends Desklet.Desklet {
         }
     }
 
+    _openDonateLink() {
+        try {
+            Util.spawnCommandLine("xdg-open " + DONATE_URL);
+        } catch (e) {
+            global.logError("xtream-desklet-deck: failed to open donate link: " + e);
+        }
+    }
+
+    _makeDonateButton() {
+        let btn = new St.Button({ style: "width: 22px; height: 22px; border-radius: 11px;" });
+        let gicon = makeWhiteIconFile(this._metadata.path, "solid", "coins", DONATE_COIN_COLOR);
+        if (gicon) {
+            btn.set_child(new St.Icon({ gicon: gicon, icon_size: 16 }));
+        }
+        new Tooltips.Tooltip(btn, "Support development ❤");
+        btn.connect("clicked", () => this._openDonateLink());
+        return btn;
+    }
+
     _buildUI() {
         let root = new St.BoxLayout({ vertical: true, style_class: "xtream-deck-root", style: "background-color: rgba(20,20,20,0.85); border-radius: 10px; padding: 6px;" });
 
@@ -731,14 +757,24 @@ class XtreamDeckDesklet extends Desklet.Desklet {
         this._gridBin = new St.Bin();
         root.add(this._gridBin);
 
-        this._footer = new St.BoxLayout({ vertical: false, style: "padding: 6px 0 0 0;" });
-        // Wrapped in a Bin stretched to the grid's full width, so the dots always
-        // center against the grid regardless of how wide the footer row itself is -
-        // centering the footer directly within root wasn't reliably lining up with
-        // the grid above it.
-        let footerBin = new St.Bin({ x_align: St.Align.MIDDLE });
-        footerBin.set_child(this._footer);
-        root.add(footerBin, { x_fill: true, x_align: St.Align.MIDDLE });
+        this._footer = new St.BoxLayout({ vertical: false });
+        // Three zones in one row: an invisible spacer, the dots (expanded + centered
+        // in whatever space remains), and the donate coin - the spacer matches the
+        // coin's width so the dots stay exactly centered under the grid instead of
+        // drifting left to make room for the coin on the right.
+        let footerRow = new St.BoxLayout({ vertical: false, style: "padding: 6px 0 0 0;" });
+        let footerSpacer = new St.Bin({ style: "width: 22px; height: 22px;" });
+        footerRow.add(footerSpacer, { y_align: St.Align.MIDDLE });
+        footerRow.add(this._footer, { expand: true, x_align: St.Align.MIDDLE, x_fill: false, y_align: St.Align.MIDDLE });
+        footerRow.add(this._makeDonateButton(), { y_align: St.Align.MIDDLE });
+        root.add(footerRow, { x_fill: true });
+
+        // Right-click context menu item, added before finalizeContextMenu() runs (the
+        // desklet manager calls it right after this constructor returns) so it lands
+        // above the separator, ahead of the built-in "About..."/"Remove" items.
+        let donateMenuItem = new PopupMenu.PopupMenuItem("❤ Support development");
+        donateMenuItem.connect("activate", () => this._openDonateLink());
+        this._menu.addMenuItem(donateMenuItem);
 
         this.setContent(root);
         this._render();

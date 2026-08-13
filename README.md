@@ -138,6 +138,13 @@ icon files). Full license text bundled at `icons/fontawesome/LICENSE.txt`.
 MIT — see [LICENSE](LICENSE). (Note: the bundled Font Awesome assets under `icons/fontawesome/`
 keep their own upstream license, see above.)
 
+## Support
+
+Xtream Deck was built with care to help professionals be more productive. If it earns a spot on
+your desktop, consider [buying me a coffee on Ko-fi](https://ko-fi.com/oliveirawro) — the little
+coin icon in the bottom-right corner of the deck (and "❤ Support development" in its right-click
+menu) link there too.
+
 ## Author
 
 Wellington Oliveira — oliveira@woliveira.net
