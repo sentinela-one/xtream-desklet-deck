@@ -467,12 +467,14 @@ class XtreamDeckDesklet extends Desklet.Desklet {
             (updatedSlot) => {
                 page.slots[slotIndex] = updatedSlot;
                 this._saveState();
-                this._renderGrid();
+                this._editMode = false;
+                this._render();
             },
             () => {
                 page.slots[slotIndex] = emptySlot();
                 this._saveState();
-                this._renderGrid();
+                this._editMode = false;
+                this._render();
             }
         );
         dialog.open();
