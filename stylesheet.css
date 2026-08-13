@@ -32,14 +32,19 @@
 
 .xtream-deck-footer-button {
     background-color: #2D6DD9 !important;
-    border-radius: 12px;
+    background-gradient-start: #2D6DD9 !important;
+    background-gradient-end: #2D6DD9 !important;
+    border: none !important;
+    border-radius: 16px !important;
     padding: 12px 18px;
     font-size: 18px;
-    font-weight: 500 !important;
+    font-weight: normal !important;
     color: white !important;
     min-width: 120px;
 }
 
 .xtream-deck-footer-button:hover {
-    background-color: #19BC97 !important;
+    background-color: #FF4D00 !important;
+    background-gradient-start: #FF4D00 !important;
+    background-gradient-end: #FF4D00 !important;
 }

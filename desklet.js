@@ -238,8 +238,8 @@ class ButtonEditorDialog extends ModalDialog.ModalDialog {
     _iconLabelButtonChild(iconName, text) {
         let box = new St.BoxLayout({ vertical: false, style: "spacing: 8px;" });
         let gicon = makeWhiteIconFile(this._deskletPath, "solid", iconName);
-        if (gicon) box.add(new St.Icon({ gicon: gicon, icon_size: 18 }), { y_align: St.Align.MIDDLE });
-        box.add(new St.Label({ text: text, style: "color: white; font-size: 18px; font-weight: 600;" }), { y_align: St.Align.MIDDLE });
+        if (gicon) box.add(new St.Icon({ gicon: gicon, icon_size: 24 }), { y_align: St.Align.MIDDLE });
+        box.add(new St.Label({ text: text, style: "color: white; font-size: 18px; font-weight: normal;" }), { y_align: St.Align.MIDDLE });
         return box;
     }
 
