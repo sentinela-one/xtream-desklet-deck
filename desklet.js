@@ -67,7 +67,7 @@ class IconPickerDialog extends ModalDialog.ModalDialog {
         ]);
         let footerChildren = this._buttonLayout.get_children();
         for (let button of footerChildren) {
-            button.style = "padding: 10px 16px; font-size: 15px;";
+            button.style = "padding: 10px 16px; font-size: 15px; border-radius: 6px;";
         }
     }
 
@@ -213,10 +213,10 @@ class ButtonEditorDialog extends ModalDialog.ModalDialog {
         let children = this._buttonLayout.get_children();
         for (let button of children) {
             if (button.label === "Clear button") {
-                button.style = "padding: 10px 16px;";
+                button.style = "padding: 10px 16px; border-radius: 6px;";
                 button.set_child(this._iconLabelButtonChild("trash", "Clear button", "white"));
             } else if (button.label === "Cancel") {
-                button.style = "padding: 10px 16px; font-size: 15px;";
+                button.style = "padding: 10px 16px; font-size: 15px; border-radius: 6px;";
             } else if (button.label === "Save") {
                 button.style = "background-color: #3498db; border-radius: 6px; padding: 10px 16px;";
                 button.set_child(this._iconLabelButtonChild("floppy-disk", "Save", "white"));
