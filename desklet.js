@@ -444,7 +444,12 @@ class ButtonEditorDialog extends ModalDialog.ModalDialog {
 
         const render = () => {
             let bg = value ? "#19BC97" : "#e6194b";
-            btn.style = "width: 84px; height: " + h + "px; border-radius: " + (h / 2) + "px; padding: 0 2px; background-color: " + bg + ";";
+            // Asymmetric padding (CSS "top right bottom left" shorthand): whichever
+            // side the thumb sits on gets almost none, so it hugs that edge - OFF's
+            // thumb sits left, ON's sits right. The far side keeps normal padding for
+            // the ON/OFF text.
+            let padding = value ? "0 1px 0 6px" : "0 6px 0 1px";
+            btn.style = "width: 84px; height: " + h + "px; border-radius: " + (h / 2) + "px; padding: " + padding + "; background-color: " + bg + ";";
 
             let row = new St.BoxLayout({ vertical: false, style: "spacing: 6px;" });
             let thumb = new St.Bin({ style: "width: " + thumbSize + "px; height: " + thumbSize + "px; border-radius: " + (thumbSize / 2) + "px; background-color: white;" });
@@ -1004,7 +1009,7 @@ class XtreamDeckDesklet extends Desklet.Desklet {
         for (let p = 0; p < this._pages.length; p++) {
             let isCurrent = p === this._currentPage;
             let dot = new St.Button({
-                style: "width: 26px; height: 26px; margin: 2px; border-radius: 13px; font-size: 13px; font-weight: bold; " +
+                style: "width: 22px; height: 22px; margin: 2px; border-radius: 11px; " +
                        (isCurrent
                            ? "background-color: rgba(255,255,255,0.9); color: #1a1a1a;"
                            : "background-color: rgba(255,255,255,0.2); color: white;"),
