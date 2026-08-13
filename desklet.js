@@ -15,8 +15,8 @@ const ICON_SIZE = 28;
 const BUTTON_SIZE = 64;
 
 const PALETTE = [
-    "#e6194b", "#2D6DD9", "#f39c12", "#9b59b6", "#19BC97",
-    "#1abc9c", "#34495e", "#7f8c8d", "#2c2c2c", "#e91e8c"
+    "#e6194b", "#e91e8c", "#f39c12", "#9b59b6", "#2D6DD9",
+    "#19BC97", "#1abc9c", "#34495e", "#7f8c8d", "#2c2c2c"
 ];
 
 const FOOTER_BUTTON_STYLE_BASE = "border: none; border-radius: 10px; padding: 8px 18px; font-size: 18px; font-weight: normal; color: white; min-width: 120px; background-color: #2D6DD9;";
