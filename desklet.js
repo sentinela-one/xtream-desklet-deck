@@ -65,9 +65,9 @@ class IconPickerDialog extends ModalDialog.ModalDialog {
             { label: "No icon", action: () => { this._onPick(""); this.close(); } },
             { label: "Close", action: () => this.close() }
         ]);
-        let footerChildren = this._buttonLayout.get_children();
-        for (let button of footerChildren) {
-            button.style = "background-color: #3498db; border-radius: 12px; padding: 12px 18px; font-size: 18px; color: white; min-width: 150px;";
+        this._buttonLayout.style = "spacing: 14px;";
+        for (let button of this._buttonLayout.get_children()) {
+            button.add_style_class_name("xtream-deck-footer-button");
         }
     }
 
@@ -235,10 +235,27 @@ class ButtonEditorDialog extends ModalDialog.ModalDialog {
         return group;
     }
 
+    _iconLabelButtonChild(iconName, text) {
+        let box = new St.BoxLayout({ vertical: false, style: "spacing: 8px;" });
+        let gicon = makeWhiteIconFile(this._deskletPath, "solid", iconName);
+        if (gicon) box.add(new St.Icon({ gicon: gicon, icon_size: 18 }), { y_align: St.Align.MIDDLE });
+        box.add(new St.Label({ text: text, style: "color: white; font-size: 18px; font-weight: 600;" }), { y_align: St.Align.MIDDLE });
+        return box;
+    }
+
     _styleFooterButtons() {
+        this._buttonLayout.style = "spacing: 14px;";
         let children = this._buttonLayout.get_children();
         for (let button of children) {
-            button.style = "background-color: #3498db; border-radius: 12px; padding: 12px 18px; font-size: 18px; color: white; min-width: 150px;";
+            let originalLabel = button.label;
+            button.add_style_class_name("xtream-deck-footer-button");
+            if (originalLabel === "Clear button") {
+                button.label = "";
+                button.set_child(this._iconLabelButtonChild("trash", "Clear button"));
+            } else if (originalLabel === "Save") {
+                button.label = "";
+                button.set_child(this._iconLabelButtonChild("floppy-disk", "Save"));
+            }
         }
     }
 
