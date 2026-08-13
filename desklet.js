@@ -40,7 +40,7 @@ class IconPickerDialog extends ModalDialog.ModalDialog {
         let titleRow = new St.BoxLayout({ vertical: false });
         let title = new St.Label({ text: "Choose an icon", style: "font-weight: bold; color: white; font-size: 24px;" });
         titleRow.add(title, { expand: true, x_fill: true, x_align: St.Align.START, y_align: St.Align.MIDDLE });
-        let closeBtn = new St.Button({ style: "width: 28px; height: 28px; border-radius: 14px; background-color: #3498db; margin-right: -14px; margin-top: -6px;" });
+        let closeBtn = new St.Button({ style: "width: 28px; height: 28px; border-radius: 14px; background-color: #3498db;" });
         let closeGicon = makeWhiteIconFile(deskletPath, "solid", "xmark");
         if (closeGicon) closeBtn.set_child(new St.Icon({ gicon: closeGicon, icon_size: 16 }));
         closeBtn.connect("clicked", () => this.close());
@@ -117,6 +117,40 @@ class IconPickerDialog extends ModalDialog.ModalDialog {
     }
 }
 
+// Small reusable confirmation dialog, styled to match the rest of Xtream Deck.
+class ConfirmDialog extends ModalDialog.ModalDialog {
+    constructor(deskletPath, titleText, messageText, confirmLabel, onConfirm) {
+        super({ styleClass: "xtream-deck-dialog" });
+        this.contentLayout.style = "spacing: 16px; padding: 22px 30px;";
+
+        let title = new St.Label({ text: titleText, style: "font-weight: bold; color: white; font-size: 24px;" });
+        this.contentLayout.add(title, { x_align: St.Align.START });
+
+        let message = new St.Label({ text: messageText, style: "color: #cccccc; font-size: 16px; width: 380px;" });
+        message.clutter_text.line_wrap = true;
+        this.contentLayout.add(message);
+
+        this.setButtons([
+            { label: "Keep editing", action: () => this.close() },
+            {
+                label: confirmLabel, focused: true, action: () => {
+                    this.close();
+                    onConfirm();
+                }
+            }
+        ]);
+
+        let children = this._buttonLayout.get_children();
+        for (let button of children) {
+            if (button.label === "Keep editing") {
+                button.style = "padding: 10px 16px; font-size: 15px; border-radius: 6px;";
+            } else if (button.label === confirmLabel) {
+                button.style = "padding: 10px 16px; font-size: 15px; border-radius: 6px; background-color: #e6194b;";
+            }
+        }
+    }
+}
+
 // Dialog: edit a single button's label, command, icon and color.
 class ButtonEditorDialog extends ModalDialog.ModalDialog {
     constructor(deskletPath, slot, onSave, onClear) {
@@ -130,7 +164,7 @@ class ButtonEditorDialog extends ModalDialog.ModalDialog {
         let titleRow = new St.BoxLayout({ vertical: false });
         let title = new St.Label({ text: "Edit button", style: "font-weight: bold; color: white; font-size: 24px;" });
         titleRow.add(title, { expand: true, x_fill: true, x_align: St.Align.START, y_align: St.Align.MIDDLE });
-        let closeBtn = new St.Button({ style: "width: 28px; height: 28px; border-radius: 14px; background-color: #3498db; margin-right: -14px; margin-top: -6px;" });
+        let closeBtn = new St.Button({ style: "width: 28px; height: 28px; border-radius: 14px; background-color: #3498db;" });
         let closeGicon = makeWhiteIconFile(this._deskletPath, "solid", "xmark");
         if (closeGicon) closeBtn.set_child(new St.Icon({ gicon: closeGicon, icon_size: 16 }));
         closeBtn.connect("clicked", () => this.close());
