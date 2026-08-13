@@ -1,0 +1,8 @@
+{
+    "uuid": "desklet-xtream@oliveirawro",
+    "name": "Xtream Deck",
+    "description": "A lightweight Stream Deck-style button grid for the Cinnamon desktop. Each button runs a shell command you configure.",
+    "version": "1.0",
+    "max-instances": "-1",
+    "icon": "camera-video"
+}
