@@ -1,11 +1,12 @@
 const Desklet = imports.ui.desklet;
 const ModalDialog = imports.ui.modalDialog;
 const Tooltips = imports.ui.tooltips;
-const DND = imports.ui.dnd;
+const Main = imports.ui.main;
 const Mainloop = imports.mainloop;
 const St = imports.gi.St;
 const Gio = imports.gi.Gio;
 const GLib = imports.gi.GLib;
+const Clutter = imports.gi.Clutter;
 const Util = imports.misc.util;
 const ByteArray = imports.byteArray;
 
@@ -15,6 +16,8 @@ const SLOTS_PER_PAGE = COLUMNS * ROWS;
 const MAX_PAGES = 3;
 const ICON_SIZE = 28;
 const BUTTON_SIZE = 64;
+const SLOT_MARGIN = 7;
+const CUSTOM_ICON_MAX_BYTES = 2 * 1024 * 1024;
 
 const PALETTE = [
     "#e6194b", "#e91e8c", "#f39c12", "#9b59b6", "#2D6DD9",
@@ -46,11 +49,15 @@ function emptyPage() {
 
 // Dialog: search & pick an icon from the bundled Font Awesome set.
 class IconPickerDialog extends ModalDialog.ModalDialog {
-    constructor(deskletPath, onPick) {
+    // parentDialog (optional): the ModalDialog this picker was opened from (e.g. the
+    // button editor). Needed to fully drop Cinnamon's shell-wide input grab while an
+    // external file picker is up - see _hideForExternalPicker() below.
+    constructor(deskletPath, onPick, parentDialog) {
         super({ styleClass: "xtream-deck-dialog" });
         this.contentLayout.style = "spacing: 18px; padding: 22px 22px;";
         this._deskletPath = deskletPath;
         this._onPick = onPick;
+        this._parentDialog = parentDialog || null;
         this._manifest = this._loadManifest();
 
         let titleRow = new St.BoxLayout({ vertical: false });
@@ -63,19 +70,37 @@ class IconPickerDialog extends ModalDialog.ModalDialog {
         titleRow.add(closeBtn, { y_align: St.Align.START });
         this.contentLayout.add(titleRow);
 
+        let libraryColumn = new St.BoxLayout({ vertical: true, style: "spacing: 10px;" });
+        libraryColumn.add(new St.Label({ text: "SELECT FROM LIBRARY", style_class: "xtream-deck-field-label" }));
+
         this._entry = new St.Entry({ style_class: "xtream-deck-entry", hint_text: "Search icons…" });
         let hint = new St.Label({ text: "Type to search, e.g. \"microphone\", \"camera\", \"play\". Showing first 24 matches.", style_class: "xtream-deck-hint" });
         let searchGroup = new St.BoxLayout({ vertical: true, style: "spacing: 6px;" });
         searchGroup.add(this._entry);
         searchGroup.add(hint);
-        this.contentLayout.add(searchGroup);
+        libraryColumn.add(searchGroup);
         this.setInitialKeyFocus(this._entry.clutter_text);
 
-        this._resultsBin = new St.Bin({ style: "width: 460px; min-height: 220px;" });
-        this.contentLayout.add(this._resultsBin);
+        this._resultsBin = new St.Bin({ style: "width: 420px; min-height: 220px;" });
+        libraryColumn.add(this._resultsBin);
 
         this._entry.clutter_text.connect("text-changed", () => this._renderResults(this._entry.get_text()));
         this._renderResults("");
+
+        let divider = new St.Bin({ style: "width: 1px; background-color: rgba(255,255,255,0.15);" });
+
+        let uploadColumn = new St.BoxLayout({ vertical: true, style: "spacing: 10px; width: 220px;" });
+        uploadColumn.add(new St.Label({ text: "UPLOAD CUSTOM ICON", style_class: "xtream-deck-field-label" }));
+        uploadColumn.add(this._makeUploadDropzone());
+        this._uploadStatus = new St.Label({ text: "", style: "color: #e6194b; font-size: 12px;" });
+        this._uploadStatus.clutter_text.line_wrap = true;
+        uploadColumn.add(this._uploadStatus);
+
+        let bodyRow = new St.BoxLayout({ vertical: false, style: "spacing: 22px;" });
+        bodyRow.add(libraryColumn);
+        bodyRow.add(divider, { y_fill: true, y_align: St.Align.START });
+        bodyRow.add(uploadColumn);
+        this.contentLayout.add(bodyRow);
 
         this.setButtons([
             { label: "No icon", action: () => { this._onPick(""); this.close(); } },
@@ -85,6 +110,77 @@ class IconPickerDialog extends ModalDialog.ModalDialog {
         for (let button of this._buttonLayout.get_children()) {
             styleFooterButton(button);
         }
+    }
+
+    // Dashed borders don't render on this toolkit when combined with border-radius
+    // (confirmed limitation - see memory), so the dropzone uses a solid border instead
+    // of the dashed one from the original mockup.
+    _makeUploadDropzone() {
+        let dropzone = new St.Button({
+            style: "width: 220px; background-color: rgba(255,255,255,0.05); " +
+                "border: 2px solid rgba(255,255,255,0.4); border-radius: 8px; padding: 22px 14px;"
+        });
+        dropzone.set_pivot_point(0.5, 0.5);
+        dropzone.connect("notify::hover", () => {
+            dropzone.style = "width: 220px; background-color: rgba(255,255,255,0.05); " +
+                "border-radius: 8px; padding: 22px 14px; border: 2px solid " +
+                (dropzone.hover ? "white" : "rgba(255,255,255,0.4)") + ";";
+        });
+
+        let content = new St.BoxLayout({ vertical: true, x_align: St.Align.MIDDLE, style: "spacing: 10px;" });
+        let cloudGicon = makeWhiteIconFile(this._deskletPath, "solid", "cloud-arrow-up");
+        if (cloudGicon) {
+            content.add(new St.Icon({ gicon: cloudGicon, icon_size: 32, opacity: 220 }), { x_align: St.Align.MIDDLE });
+        }
+        let text = new St.Label({ text: "Click to upload a PNG icon.", style: "color: white; font-size: 14px; text-align: center;" });
+        text.clutter_text.line_wrap = true;
+        content.add(text, { x_align: St.Align.MIDDLE });
+        let subtext = new St.Label({ text: "PNG only. Max size: 2MB.", style_class: "xtream-deck-hint" });
+        content.add(subtext, { x_align: St.Align.MIDDLE });
+        dropzone.set_child(content);
+
+        dropzone.connect("clicked", () => {
+            this._uploadStatus.text = "";
+            this._hideForExternalPicker();
+            pickPngFileAsync((sourcePath) => {
+                this._showAfterExternalPicker();
+                if (!sourcePath) return;
+                importCustomPngIcon(
+                    sourcePath,
+                    (destPath) => {
+                        this._onPick(destPath);
+                        this.close();
+                    },
+                    (message) => { this._uploadStatus.text = message; }
+                );
+            });
+        });
+
+        return dropzone;
+    }
+
+    // Cinnamon's modal dialogs take a shell-wide input grab (global.begin_modal) that
+    // stays in effect as long as ANY dialog in the stack is pushed - popping just this
+    // dialog isn't enough, since the parent (button editor) below it still holds its
+    // own modal push. Without dropping both, zenity's window renders behind the shell's
+    // dimmed overlay and can't receive any input. Hide (not close/destroy) so all field
+    // values in the parent dialog survive.
+    _hideForExternalPicker() {
+        this.popModal();
+        this._group.hide();
+        if (this._parentDialog) {
+            this._parentDialog.popModal();
+            this._parentDialog._group.hide();
+        }
+    }
+
+    _showAfterExternalPicker() {
+        if (this._parentDialog) {
+            this._parentDialog._group.show();
+            this._parentDialog.pushModal();
+        }
+        this._group.show();
+        this.pushModal();
     }
 
     _loadManifest() {
@@ -234,7 +330,7 @@ class ButtonEditorDialog extends ModalDialog.ModalDialog {
             let picker = new IconPickerDialog(this._deskletPath, (iconRef) => {
                 this._slot.icon = iconRef;
                 this._updateIconPreview();
-            });
+            }, this);
             picker.open();
         });
         this._updateIconPreview();
@@ -406,6 +502,61 @@ function resolveIconGicon(deskletPath, iconRef) {
     }
 }
 
+// Opens the system's native file picker (zenity) filtered to PNG, as an async
+// subprocess - never blocks the Cinnamon shell. Always calls onDone exactly once,
+// with the chosen path or "" (cancelled or failed to launch) - callers rely on
+// onDone always firing to restore UI state they suspended while the picker was up.
+function pickPngFileAsync(onDone) {
+    try {
+        let proc = Gio.Subprocess.new(
+            ["zenity", "--file-selection", "--title=Choose a PNG icon", "--file-filter=*.png"],
+            Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_SILENCE
+        );
+        proc.communicate_utf8_async(null, null, (source, res) => {
+            let path = "";
+            try {
+                let [success, stdout] = source.communicate_utf8_finish(res);
+                if (success && stdout) path = stdout.trim();
+            } catch (e) {
+                global.logError("xtream-desklet-deck: zenity file picker failed: " + e);
+            }
+            onDone(path);
+        });
+    } catch (e) {
+        global.logError("xtream-desklet-deck: failed to launch zenity (is it installed?): " + e);
+        onDone("");
+    }
+}
+
+// Validates and copies a user-picked PNG into the desklet's own config dir (backed
+// up alongside instance state, unlike ~/.cache) so it survives independently of
+// wherever the user originally kept the source file. Returns the new absolute path
+// via onImported(path), or a human-readable message via onError(message).
+function importCustomPngIcon(sourcePath, onImported, onError) {
+    try {
+        if (!sourcePath.toLowerCase().endsWith(".png")) {
+            onError("Only PNG files are supported.");
+            return;
+        }
+        let sourceFile = Gio.File.new_for_path(sourcePath);
+        let info = sourceFile.query_info("standard::size", Gio.FileQueryInfoFlags.NONE, null);
+        if (info.get_size() > CUSTOM_ICON_MAX_BYTES) {
+            onError("File is larger than 2MB.");
+            return;
+        }
+
+        let destDir = GLib.get_home_dir() + "/.config/xtream-desklet-deck/custom_icons";
+        GLib.mkdir_with_parents(destDir, 0o755);
+        let baseName = GLib.path_get_basename(sourcePath).replace(/[^a-zA-Z0-9._-]/g, "_");
+        let destPath = destDir + "/" + Date.now() + "-" + baseName;
+        sourceFile.copy(Gio.File.new_for_path(destPath), Gio.FileCopyFlags.OVERWRITE, null, null);
+        onImported(destPath);
+    } catch (e) {
+        onError("Failed to import icon.");
+        global.logError("xtream-desklet-deck: failed to import custom icon '" + sourcePath + "': " + e);
+    }
+}
+
 class XtreamDeckDesklet extends Desklet.Desklet {
     constructor(metadata, desklet_id) {
         super(metadata, desklet_id);
@@ -543,6 +694,7 @@ class XtreamDeckDesklet extends Desklet.Desklet {
     _renderGrid() {
         let grid = new St.Table({ homogeneous: false });
         let page = this._pages[this._currentPage];
+        this._slotButtons = [];
 
         for (let i = 0; i < SLOTS_PER_PAGE; i++) {
             let row = Math.floor(i / COLUMNS);
@@ -560,12 +712,20 @@ class XtreamDeckDesklet extends Desklet.Desklet {
         let borderColor = this._editMode ? "rgba(255,255,255,0.8)" : "rgba(255,255,255,0.5)";
         let hoverBorderColor = "white";
 
-        const baseStyle = () => "width: " + BUTTON_SIZE + "px; height: " + BUTTON_SIZE + "px; margin: 3px; " +
-            "background-color: " + bgColor + "; border-radius: 10px; border: 2px solid " + borderColor + ";";
-        const hoverStyle = () => "width: " + BUTTON_SIZE + "px; height: " + BUTTON_SIZE + "px; margin: 3px; " +
-            "background-color: " + hoverBgColor + "; border-radius: 10px; border: 2px solid " + hoverBorderColor + ";";
+        const baseStyle = () => "width: " + BUTTON_SIZE + "px; height: " + BUTTON_SIZE + "px; background-color: " + bgColor + "; border-radius: 10px; border: 2px solid " + borderColor + ";";
+        const hoverStyle = () => "width: " + BUTTON_SIZE + "px; height: " + BUTTON_SIZE + "px; background-color: " + hoverBgColor + "; border-radius: 10px; border: 2px solid " + hoverBorderColor + ";";
 
-        let button = new St.Button({ style: baseStyle() });
+        // Outer button: fixed size, never scaled. It's the actual reactive/hoverable
+        // actor, so its hover hit-test region always stays exactly BUTTON_SIZE - if it
+        // were the thing scaling up on hover, Clutter's picking (which follows the
+        // transformed box) would grow its hit region into the neighboring slot's
+        // margin, making that neighbor flicker hover too. The chrome (background/
+        // border) and the grow-on-hover live on an inner St.Bin instead, which is free
+        // to visually overflow into the margin gap without affecting anyone's hit-test.
+        let button = new St.Button({ style: "width: " + BUTTON_SIZE + "px; height: " + BUTTON_SIZE + "px; margin: " + SLOT_MARGIN + "px;" });
+        let visual = new St.Bin({ style: baseStyle() });
+        visual.set_pivot_point(0.5, 0.5);
+        button.set_child(visual);
 
         if (slot.label) {
             new Tooltips.Tooltip(button, slot.label);
@@ -573,16 +733,15 @@ class XtreamDeckDesklet extends Desklet.Desklet {
 
         // "Inchadinha": grows slightly and brightens on hover, same pattern used
         // across the gimmyclues app (.btn-secondary-purple:hover -> scale(1.04)).
-        button.set_pivot_point(0.5, 0.5);
         button.connect("notify::hover", () => {
             if (button.hover) {
-                button.scale_x = 1.04;
-                button.scale_y = 1.04;
-                button.style = hoverStyle();
+                visual.scale_x = 1.04;
+                visual.scale_y = 1.04;
+                visual.style = hoverStyle();
             } else {
-                button.scale_x = 1.0;
-                button.scale_y = 1.0;
-                button.style = baseStyle();
+                visual.scale_x = 1.0;
+                visual.scale_y = 1.0;
+                visual.style = baseStyle();
             }
         });
 
@@ -607,53 +766,148 @@ class XtreamDeckDesklet extends Desklet.Desklet {
                 box.add(new St.Label({ text: slot.label, style: "font-size: 9px; color: white; text-align: center;" }), { x_fill: false, x_align: St.Align.MIDDLE });
             }
         }
-        button.set_child(box);
+        visual.set_child(box);
 
+        // Only wired for the non-edit-mode "run command" case. In edit mode, the
+        // button-press-event handler below consumes the press itself and resolves
+        // click-vs-drag on release, so St.Button's own "clicked" never fires there.
         button.connect("clicked", () => {
-            if (this._editMode) {
-                this._openEditor(slotIndex);
-            } else if (slot.command) {
+            if (!this._editMode && slot.command) {
                 this._runCommand(slot.command);
             }
         });
 
-        // Drag-to-swap between slots, edit mode only. No custom getDragActor,
-        // so the button itself is what's dragged - Cinnamon reparents it during
-        // the drag and destroys it on a successful drop, so the actual data
-        // swap + grid rebuild is deferred to the next idle cycle to avoid
-        // fighting the DND framework's own cleanup of that same actor.
+        this._slotButtons.push({ button: button, slotIndex: slotIndex });
+
+        // Drag-to-swap between slots, edit mode only. imports.ui.dnd was dropped: it left
+        // a stray blue placeholder overlay on screen and never actually triggered the swap
+        // (see limitation #9 in memory - superseded by this). Replaced with a hand-rolled
+        // drag: a Clutter.Clone ghost follows the pointer via a stage-level "captured-event"
+        // listener, the same low-level mechanism imports.ui.dnd itself uses internally. A
+        // short move threshold keeps a plain click from being swallowed as a drag.
         if (this._editMode) {
+            const highlightStyle = () => "width: " + BUTTON_SIZE + "px; height: " + BUTTON_SIZE + "px; background-color: " + hoverBgColor + "; border-radius: 10px; border: 3px solid #2D6DD9;";
+            visual._baseStyle = baseStyle;
+            visual._highlightStyle = highlightStyle;
+
             let desklet = this;
-            button._delegate = {
-                slotIndex: slotIndex,
-                handleDragOver: (source) => {
-                    if (source && source.slotIndex !== undefined && source.slotIndex !== slotIndex) {
-                        return DND.DragMotionResult.MOVE_DROP;
-                    }
-                    return DND.DragMotionResult.NO_DROP;
-                },
-                acceptDrop: (source) => {
-                    if (!source || source.slotIndex === undefined || source.slotIndex === slotIndex) {
-                        return false;
-                    }
-                    let page = desklet._pages[desklet._currentPage];
-                    let a = source.slotIndex;
-                    let b = slotIndex;
-                    let tmp = page.slots[a];
-                    page.slots[a] = page.slots[b];
-                    page.slots[b] = tmp;
-                    desklet._saveState();
-                    Mainloop.idle_add(() => {
-                        desklet._render();
-                        return false;
-                    });
-                    return true;
-                }
-            };
-            DND.makeDraggable(button);
+            button.connect("button-press-event", (actor, pressEvent) => {
+                if (pressEvent.get_button() !== 1) return false;
+                // Consume the press so St.Button never arms its own internal
+                // press/click tracking (which appears to hold an implicit pointer
+                // grab) - left uncontested, it was racing our own drag tracking and
+                // swallowing the real release, leaving the ghost stuck "hanging"
+                // until an unrelated later click (wrongly opening the editor) or a
+                // right-click finally freed it. We now own the whole press-drag-
+                // release lifecycle ourselves, including firing the click action.
+                desklet._startSlotDrag(slotIndex, button, pressEvent);
+                return true;
+            });
         }
 
         return button;
+    }
+
+    _startSlotDrag(sourceSlotIndex, sourceButton, pressEvent) {
+        const DRAG_THRESHOLD = 6;
+        let [startX, startY] = pressEvent.get_coords();
+        let dragging = false;
+        let ghost = null;
+        let highlighted = null;
+        let targetSlotIndex = -1;
+        let desklet = this;
+
+        let capturedId = global.stage.connect("captured-event", (actor, event) => {
+            let type = event.type();
+
+            if (type === Clutter.EventType.MOTION) {
+                let [x, y] = event.get_coords();
+
+                if (!dragging) {
+                    if (Math.abs(x - startX) < DRAG_THRESHOLD && Math.abs(y - startY) < DRAG_THRESHOLD) {
+                        return false;
+                    }
+                    dragging = true;
+                    ghost = desklet._makeDragGhost(sourceButton);
+                    Main.uiGroup.add_actor(ghost);
+                }
+
+                let [w, h] = ghost.get_size();
+                ghost.set_position(x - w / 2, y - h / 2);
+
+                let hovered = desklet._slotButtonAt(x, y);
+                let hoveredButton = (hovered && hovered.slotIndex !== sourceSlotIndex) ? hovered.button : null;
+                if (highlighted !== hoveredButton) {
+                    if (highlighted) desklet._setSlotHighlight(highlighted, false);
+                    if (hoveredButton) desklet._setSlotHighlight(hoveredButton, true);
+                    highlighted = hoveredButton;
+                }
+                targetSlotIndex = hoveredButton ? hovered.slotIndex : -1;
+                return true;
+            }
+
+            if (type === Clutter.EventType.BUTTON_RELEASE) {
+                global.stage.disconnect(capturedId);
+                if (highlighted) desklet._setSlotHighlight(highlighted, false);
+                if (ghost) ghost.destroy();
+
+                if (dragging) {
+                    // Deferred to the next idle cycle: mutating slots + destroying/
+                    // rebuilding the whole grid synchronously, while still inside this
+                    // same captured-event dispatch, was leaving Clutter's click-tracking
+                    // confused enough that the drop needed a second, unrelated click to
+                    // actually settle - letting this event finish unwinding first avoids
+                    // that.
+                    if (targetSlotIndex !== -1) {
+                        Mainloop.idle_add(() => {
+                            desklet._swapSlots(sourceSlotIndex, targetSlotIndex);
+                            return false;
+                        });
+                    }
+                } else {
+                    // No movement past the threshold: this was a plain click, and since
+                    // we consumed the press ourselves (see button-press-event above),
+                    // we're the ones responsible for firing its action too.
+                    desklet._openEditor(sourceSlotIndex);
+                }
+                return true;
+            }
+
+            return false;
+        });
+    }
+
+    _makeDragGhost(sourceButton) {
+        let [w, h] = sourceButton.get_size();
+        let ghost = new Clutter.Clone({ source: sourceButton, reactive: false, opacity: 200 });
+        ghost.set_size(w, h);
+        return ghost;
+    }
+
+    _slotButtonAt(x, y) {
+        for (let i = 0; i < this._slotButtons.length; i++) {
+            let entry = this._slotButtons[i];
+            let [bx, by] = entry.button.get_transformed_position();
+            let [bw, bh] = entry.button.get_transformed_size();
+            if (x >= bx && x <= bx + bw && y >= by && y <= by + bh) {
+                return entry;
+            }
+        }
+        return null;
+    }
+
+    _setSlotHighlight(button, on) {
+        let visual = button.get_child();
+        visual.style = on ? visual._highlightStyle() : visual._baseStyle();
+    }
+
+    _swapSlots(a, b) {
+        let page = this._pages[this._currentPage];
+        let tmp = page.slots[a];
+        page.slots[a] = page.slots[b];
+        page.slots[b] = tmp;
+        this._saveState();
+        this._render();
     }
 
     _openEditor(slotIndex) {
@@ -689,24 +943,22 @@ class XtreamDeckDesklet extends Desklet.Desklet {
                        (isCurrent ? "background-color: rgba(255,255,255,0.9);" : "background-color: rgba(255,255,255,0.2);"),
                 label: String(p + 1)
             });
-            let suppressNextClick = false;
             dot.connect("clicked", () => {
-                if (suppressNextClick) {
-                    suppressNextClick = false;
-                    return;
-                }
                 this._currentPage = p;
                 this._saveState();
                 this._render();
             });
             if (p >= 1) {
-                dot.connect("button-release-event", (actor, event) => {
+                // Swallow the right-click at button-press-event, before St.Button's own
+                // handler ever runs, so it never arms its internal "pressed" click
+                // detection. A suppressNextClick flag tried after the fact (post-release)
+                // did not reliably stop "clicked" from also firing - it stacked a second
+                // ConfirmDialog underneath (Cancel only closed the top one). Consuming the
+                // press (return true) starves "clicked" at the source instead.
+                dot.connect("button-press-event", (actor, event) => {
                     if (event.get_button() === 3) {
-                        // Right-click also fires "clicked" on St.Button - suppress
-                        // that so it doesn't switch pages while the confirm dialog
-                        // (and a page-switching re-render underneath it) is opening.
-                        suppressNextClick = true;
                         this._confirmRemovePage(p);
+                        return true;
                     }
                     return false;
                 });
