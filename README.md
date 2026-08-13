@@ -4,7 +4,7 @@ A lightweight, native Stream Deck-style button grid for the **Cinnamon desktop**
 other Cinnamon-based distros). No heavy background app, no separate process — it's a regular
 Cinnamon desklet, so it's basically free in terms of CPU/RAM.
 
-Each instance shows a 5x2 grid of buttons, with up to 3 pages (30 buttons total per instance).
+Each instance shows a 5x2 grid of buttons, with up to 5 pages (50 buttons total per instance).
 Every button has its own label, command, icon, and background color — all configured directly
 inside the panel, no external settings screen needed. Comes with the full [Font Awesome
 Free](https://fontawesome.com) icon set (7.3.1, ~2,900 icons) bundled in, so you don't need
@@ -67,7 +67,7 @@ Everything is configured from inside the panel itself — there's no separate se
 4. Click the **gear icon** again to leave edit mode — buttons now run their command on click
    instead of opening the editor.
 5. Use the numbered dots at the bottom to switch pages. While in edit mode, a **+** button appears
-   next to them to add a new page (up to 3 pages per deck, confirmation required). Right-click any
+   next to them to add a new page (up to 5 pages per deck, confirmation required). Right-click any
    dot except the first one to remove that page (confirmation required — this deletes every button
    configured on it).
 

@@ -13,7 +13,7 @@ const ByteArray = imports.byteArray;
 const COLUMNS = 5;
 const ROWS = 2;
 const SLOTS_PER_PAGE = COLUMNS * ROWS;
-const MAX_PAGES = 3;
+const MAX_PAGES = 5;
 const ICON_SIZE = 34;
 const BUTTON_SIZE = 64;
 const SLOT_MARGIN = 7;
@@ -712,7 +712,13 @@ class XtreamDeckDesklet extends Desklet.Desklet {
         root.add(this._gridBin);
 
         this._footer = new St.BoxLayout({ vertical: false, style: "padding: 6px 0 0 0;" });
-        root.add(this._footer, { x_align: St.Align.MIDDLE });
+        // Wrapped in a Bin stretched to the grid's full width, so the dots always
+        // center against the grid regardless of how wide the footer row itself is -
+        // centering the footer directly within root wasn't reliably lining up with
+        // the grid above it.
+        let footerBin = new St.Bin({ x_align: St.Align.MIDDLE });
+        footerBin.set_child(this._footer);
+        root.add(footerBin, { x_fill: true, x_align: St.Align.MIDDLE });
 
         this.setContent(root);
         this._render();
@@ -998,8 +1004,10 @@ class XtreamDeckDesklet extends Desklet.Desklet {
         for (let p = 0; p < this._pages.length; p++) {
             let isCurrent = p === this._currentPage;
             let dot = new St.Button({
-                style: "width: 22px; height: 22px; margin: 2px; border-radius: 11px; " +
-                       (isCurrent ? "background-color: rgba(255,255,255,0.9);" : "background-color: rgba(255,255,255,0.2);"),
+                style: "width: 26px; height: 26px; margin: 2px; border-radius: 13px; font-size: 13px; font-weight: bold; " +
+                       (isCurrent
+                           ? "background-color: rgba(255,255,255,0.9); color: #1a1a1a;"
+                           : "background-color: rgba(255,255,255,0.2); color: white;"),
                 label: String(p + 1)
             });
             dot.connect("clicked", () => {
