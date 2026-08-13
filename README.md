@@ -56,8 +56,9 @@ Everything is configured from inside the panel itself — there's no separate se
    - **Show Title** — toggle next to the label field; turns the label under the icon on/off on
      the grid without deleting the text.
    - **Command** — any shell command or script path, run when you click the button.
-   - **Icon** — click **Pick icon…** and search the bundled Font Awesome set (type e.g.
-     `microphone`, `camera`, `play`); hover a result to see its full name before picking it.
+   - **Icon** — click **Pick icon…** and either search the bundled Font Awesome set (type e.g.
+     `microphone`, `camera`, `play`; hover a result to see its full name before picking it), or
+     upload your own PNG (max 2MB) from the panel next to it.
    - **Color** — pick a background color from the palette (the selected swatch gets a white
      border), or clear it back to the default dark background.
    - **Clear button** wipes the slot back to empty. **Save**/**Cancel**/the **X** close the
@@ -97,9 +98,10 @@ already running in the integrated terminal by the time the window opens.
 - `metadata.json` — desklet identity (uuid, name, `max-instances: -1` so you can add as many as
   you want).
 - `desklet.js` — renders the header/grid/pagination, the in-panel edit mode and dialogs
-  (`ButtonEditorDialog`, `IconPickerDialog`, `ConfirmDialog`), drag-to-swap reordering (Cinnamon's
-  native `imports.ui.dnd`), and runs the configured command on click (`Util.spawnCommandLine`),
-  using Cinnamon's own `St`/`Clutter` toolkit — no extra runtime.
+  (`ButtonEditorDialog`, `IconPickerDialog`, `ConfirmDialog`), drag-to-swap reordering (hand-rolled
+  on top of `Clutter`'s low-level pointer events, not Cinnamon's `imports.ui.dnd`), and runs the
+  configured command on click (`Util.spawnCommandLine`), using Cinnamon's own `St`/`Clutter`
+  toolkit — no extra runtime.
 - `icons/fontawesome/` — the bundled Font Awesome Free 7.3.1 icon set (`solid`, `regular`,
   `brands`) plus `manifest.json` used to power the in-panel icon search, and the upstream
   `LICENSE.txt`. See [Attribution](#attribution) below.
