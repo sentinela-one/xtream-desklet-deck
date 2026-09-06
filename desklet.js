@@ -1191,10 +1191,12 @@ class XtreamDeckDesklet extends Desklet.Desklet {
         });
 
         const addItem = (text, onClick) => {
-            let item = new St.Button({ style: "padding: 8px 18px; border-radius: 5px;" });
-            let labelBin = new St.Bin({ x_align: St.Align.START, x_fill: true });
-            labelBin.set_child(new St.Label({ text: text, style: "color: white; font-size: 14px;" }));
-            item.set_child(labelBin);
+            // x_align/x_fill go on the button itself, not a wrapper around its
+            // label - it's the button that gets stretched wide by the menu's own
+            // x_fill (to match its widest sibling), so it's the button's own
+            // alignment that decides where its label sits inside that wider box.
+            let item = new St.Button({ style: "padding: 8px 18px; border-radius: 5px;", x_align: St.Align.START, x_fill: true });
+            item.set_child(new St.Label({ text: text, style: "color: white; font-size: 14px;" }));
             item.connect("notify::hover", () => {
                 item.style = "padding: 8px 18px; border-radius: 5px;" + (item.hover ? " background-color: rgba(255,255,255,0.12);" : "");
             });
