@@ -687,7 +687,6 @@ class XtreamDeckDesklet extends Desklet.Desklet {
         super(metadata, desklet_id);
         this._metadata = metadata;
         this._statePath = GLib.get_home_dir() + "/.config/xtream-desklet-deck/instances/" + desklet_id + ".json";
-        this._editMode = false;
         this._currentPage = 0;
 
         this._loadState();
@@ -813,9 +812,12 @@ class XtreamDeckDesklet extends Desklet.Desklet {
 
         this._editButton = new St.Button({ style: "width: 24px; height: 24px; border-radius: 4px;" });
         header.add(this._editButton, { x_align: St.Align.END, y_align: St.Align.MIDDLE });
+        // Left click opens the same About/Remove/Support menu that a right-click
+        // anywhere on the gear already does natively (see guardNativeMenu above) -
+        // the gear no longer toggles any edit mode, since drag-to-reorder and the
+        // right-click "Edit"/"Move to..." menu on each slot cover that already.
         this._editButton.connect("clicked", () => {
-            this._editMode = !this._editMode;
-            this._render();
+            this._menu.toggle();
         });
 
         root.add(header);
@@ -844,29 +846,9 @@ class XtreamDeckDesklet extends Desklet.Desklet {
 
         this.setContent(root);
         this._render();
-
-        // Esc exits edit mode. Desklets don't hold an exclusive key grab like
-        // ModalDialog does, so this only fires while the shell stage actually has
-        // keyboard focus (reliably true right after clicking the gear, which is the
-        // normal way edit mode gets entered). Connected to global.stage (not our own
-        // actor), so it must be disconnected in on_desklet_removed() - otherwise it
-        // outlives this desklet instance and leaks.
-        this._escKeyHandlerId = global.stage.connect("key-press-event", (actor, event) => {
-            if (this._editMode && event.get_key_symbol() === Clutter.KEY_Escape) {
-                this._editMode = false;
-                this._render();
-                return true;
-            }
-            return false;
-        });
     }
 
     on_desklet_removed(deleteConfig) {
-        if (this._escKeyHandlerId) {
-            global.stage.disconnect(this._escKeyHandlerId);
-            this._escKeyHandlerId = null;
-        }
-        this._stopPulseAnimation();
         this._closeSlotContextMenu();
     }
 
@@ -874,11 +856,6 @@ class XtreamDeckDesklet extends Desklet.Desklet {
         this._renderGear();
         this._renderGrid();
         this._renderFooter();
-        if (this._editMode) {
-            this._startPulseAnimation();
-        } else {
-            this._stopPulseAnimation();
-        }
     }
 
     _renderGear() {
@@ -889,9 +866,6 @@ class XtreamDeckDesklet extends Desklet.Desklet {
         } else {
             this._editButton.set_child(new St.Label({ text: "⚙", style: "color: white;" }));
         }
-        this._editButton.style = this._editMode
-            ? "width: 24px; height: 24px; border-radius: 4px; background-color: rgba(255,255,255,0.25);"
-            : "width: 24px; height: 24px; border-radius: 4px;";
     }
 
     _renderGrid() {
@@ -912,7 +886,7 @@ class XtreamDeckDesklet extends Desklet.Desklet {
     _makeSlotButton(slot, slotIndex) {
         let bgColor = slot.color || "rgba(255,255,255,0.06)";
         let hoverBgColor = slot.color || "rgba(255,255,255,0.16)";
-        let borderColor = this._editMode ? GRID_EDIT_BORDER_COLOR : "rgba(255,255,255,0.5)";
+        let borderColor = "rgba(255,255,255,0.5)";
         let hoverBorderColor = "white";
 
         const baseStyle = (borderOverride) => "width: " + BUTTON_SIZE + "px; height: " + BUTTON_SIZE + "px; background-color: " + bgColor + "; border-radius: 10px; border: 2px solid " + (borderOverride || borderColor) + ";";
@@ -929,9 +903,8 @@ class XtreamDeckDesklet extends Desklet.Desklet {
         let button = new St.Button({ style: "width: " + BUTTON_SIZE + "px; height: " + BUTTON_SIZE + "px; margin: " + SLOT_MARGIN + "px;" });
         let visual = new St.Bin({ style: baseStyle() });
         visual.set_pivot_point(0.5, 0.5);
-        // Stashed unconditionally (not just in edit mode) so both the drag-highlight
-        // and the edit-mode border pulse (_startPulseAnimation) can restyle this same
-        // actor without needing to recompute bgColor/borderColor from scratch.
+        // Stashed on the actor so the drag-highlight (_setSlotHighlight) can restyle
+        // it without needing to recompute bgColor/borderColor from scratch.
         visual._baseStyle = baseStyle;
         visual._highlightStyle = highlightStyle;
         button.set_child(visual);
@@ -956,24 +929,12 @@ class XtreamDeckDesklet extends Desklet.Desklet {
 
         let box = new St.BoxLayout({ vertical: true, x_align: St.Align.MIDDLE });
 
-        if (this._editMode && !slot.icon) {
-            let pencilGicon = makeWhiteIconFile(this._metadata.path, "solid", "pen-to-square");
-            if (pencilGicon) {
-                box.add(new St.Icon({ gicon: pencilGicon, icon_size: ICON_SIZE, opacity: 210 }), { x_fill: false, x_align: St.Align.MIDDLE });
-            }
-        } else if (this._editMode) {
-            let gicon = resolveIconGicon(this._metadata.path, slot.icon);
-            if (gicon) {
-                box.add(new St.Icon({ gicon: gicon, icon_size: ICON_SIZE }), { x_fill: false, x_align: St.Align.MIDDLE });
-            }
-        } else {
-            let gicon = resolveIconGicon(this._metadata.path, slot.icon);
-            if (gicon) {
-                box.add(new St.Icon({ gicon: gicon, icon_size: ICON_SIZE }), { x_fill: false, x_align: St.Align.MIDDLE });
-            }
-            if (slot.label && slot.showTitle !== false) {
-                box.add(new St.Label({ text: slot.label, style: "font-size: 9px; color: " + labelColorForSlot(slot) + "; text-align: center;" }), { x_fill: false, x_align: St.Align.MIDDLE });
-            }
+        let gicon = resolveIconGicon(this._metadata.path, slot.icon);
+        if (gicon) {
+            box.add(new St.Icon({ gicon: gicon, icon_size: ICON_SIZE }), { x_fill: false, x_align: St.Align.MIDDLE });
+        }
+        if (slot.label && slot.showTitle !== false) {
+            box.add(new St.Label({ text: slot.label, style: "font-size: 9px; color: " + labelColorForSlot(slot) + "; text-align: center;" }), { x_fill: false, x_align: St.Align.MIDDLE });
         }
         visual.set_child(box);
 
@@ -981,16 +942,14 @@ class XtreamDeckDesklet extends Desklet.Desklet {
 
         let desklet = this;
 
-        // Right-click, either mode: a small context menu with "Edit" (same action as
-        // a left click in edit mode) and, when there's more than one page and this
-        // slot actually has something in it, "Move to next page". Only for slots that
-        // actually have something configured - an empty slot falls through to the
-        // desklet's own normal right-click menu instead. Consumed at
-        // button-press-event (not "clicked") for the same reason as the page dots'
-        // own right-click handling below - stops St.Button's internal click tracking
-        // from also firing the left-click action for this same press.
+        // Right-click, any slot (empty or not): a small context menu with "Edit"
+        // and, when there's more than one page and this slot actually has something
+        // in it, "Move to next/previous page". Consumed at button-press-event (not
+        // "clicked") for the same reason as the page dots' own right-click handling
+        // below - stops St.Button's internal click tracking from also firing the
+        // left-click action for this same press.
         button.connect("button-press-event", (actor, pressEvent) => {
-            if (pressEvent.get_button() !== 3 || isEmptySlot(slot)) return false;
+            if (pressEvent.get_button() !== 3) return false;
             desklet._openSlotContextMenu(slotIndex, button);
             return true;
         });
@@ -999,22 +958,20 @@ class XtreamDeckDesklet extends Desklet.Desklet {
         // button), not from 'button-press-event' - consuming just the press above
         // stops that menu from being *triggered* fresh, but the matching release
         // for the same right-click still bubbles up afterwards and toggles it open.
-        // Needs consuming separately here too (mirrors the same isEmptySlot check,
-        // so an empty slot's right-click still reaches that native menu normally).
+        // Needs consuming separately here too.
         button.connect("button-release-event", (actor, releaseEvent) => {
-            return releaseEvent.get_button() === 3 && !isEmptySlot(slot);
+            return releaseEvent.get_button() === 3;
         });
 
-        // Press-and-hold-to-drag-and-swap between slots, in either mode - not just
-        // edit mode: a plain click still opens the editor (edit mode) or runs the
-        // button's command (normal mode), but holding and moving the pointer past
-        // the threshold always reorders instead. imports.ui.dnd was dropped: it left
-        // a stray blue placeholder overlay on screen and never actually triggered the
-        // swap (see limitation #9 in memory - superseded by this). Replaced with a
-        // hand-rolled drag: a Clutter.Clone ghost follows the pointer via a
-        // stage-level "captured-event" listener, the same low-level mechanism
-        // imports.ui.dnd itself uses internally. A short move threshold keeps a
-        // plain click from being swallowed as a drag.
+        // Press-and-hold-to-drag-and-swap between slots. A plain click instead runs
+        // the button's command (see the no-drag branch in _startSlotDrag below) -
+        // configuring a slot only happens via the right-click "Edit" above now.
+        // imports.ui.dnd was dropped: it left a stray blue placeholder overlay on
+        // screen and never actually triggered the swap (see limitation #9 in memory
+        // - superseded by this). Replaced with a hand-rolled drag: a Clutter.Clone
+        // ghost follows the pointer via a stage-level "captured-event" listener, the
+        // same low-level mechanism imports.ui.dnd itself uses internally. A short
+        // move threshold keeps a plain click from being swallowed as a drag.
         button.connect("button-press-event", (actor, pressEvent) => {
             if (pressEvent.get_button() !== 1) return false;
             // Consume the press so St.Button never arms its own internal
@@ -1051,10 +1008,6 @@ class XtreamDeckDesklet extends Desklet.Desklet {
                         return false;
                     }
                     dragging = true;
-                    // Pause the edit-mode border pulse for the duration of the drag -
-                    // it restyles every slot's border on a timer, which would otherwise
-                    // fight the blue drop-target highlight below on every tick.
-                    desklet._stopPulseAnimation();
                     ghost = desklet._makeDragGhost(sourceButton);
                     Main.uiGroup.add_actor(ghost);
                 }
@@ -1090,24 +1043,13 @@ class XtreamDeckDesklet extends Desklet.Desklet {
                             desklet._swapSlots(sourceSlotIndex, targetSlotIndex);
                             return false;
                         });
-                    } else if (desklet._editMode) {
-                        // Dropped outside any slot: nothing changed, so _render() (which
-                        // would otherwise restart the pulse itself) never runs - resume it
-                        // here instead. Only relevant in edit mode, where the pulse runs
-                        // at all - dragging is now also available outside it.
-                        desklet._startPulseAnimation();
                     }
                 } else {
                     // No movement past the threshold: this was a plain click, and since
                     // we consumed the press ourselves (see button-press-event above),
-                    // we're the ones responsible for firing its action too - which
-                    // action depends on the mode, same split "clicked" used to handle.
-                    if (desklet._editMode) {
-                        desklet._openEditor(sourceSlotIndex);
-                    } else {
-                        let slot = desklet._pages[desklet._currentPage].slots[sourceSlotIndex];
-                        if (slot.command) desklet._runCommand(slot.command);
-                    }
+                    // we're the ones responsible for running its command too.
+                    let slot = desklet._pages[desklet._currentPage].slots[sourceSlotIndex];
+                    if (slot.command) desklet._runCommand(slot.command);
                 }
                 return true;
             }
@@ -1159,13 +1101,11 @@ class XtreamDeckDesklet extends Desklet.Desklet {
             (updatedSlot) => {
                 page.slots[slotIndex] = updatedSlot;
                 this._saveState();
-                this._editMode = false;
                 this._render();
             },
             () => {
                 page.slots[slotIndex] = emptySlot();
                 this._saveState();
-                this._editMode = false;
                 this._render();
             }
         );
@@ -1297,42 +1237,6 @@ class XtreamDeckDesklet extends Desklet.Desklet {
         ).open();
     }
 
-    // Breathing border on every slot while edit mode is active, as a visual cue
-    // that buttons can be dragged around: cycles between white and the app's own
-    // blue accent (not just a white opacity fade, which turned out too subtle to
-    // notice against the grid's own colorful backgrounds). One shared timer
-    // restyles all slots per tick (cheaper and simpler than a Tweener per button) -
-    // reads this._slotButtons fresh each tick, so it never touches actors from a
-    // stale render. Skips a button currently under the pointer so hover/drag
-    // styling (set elsewhere) isn't clobbered.
-    _startPulseAnimation() {
-        this._stopPulseAnimation();
-        let desklet = this;
-        let phase = 0;
-        const fromColor = [255, 255, 255];
-        const toColor = [0x2D, 0x6D, 0xD9];
-        this._pulseTimeoutId = Mainloop.timeout_add(50, () => {
-            phase += 0.15;
-            let t = 0.5 + 0.5 * Math.sin(phase);
-            let r = Math.round(fromColor[0] + (toColor[0] - fromColor[0]) * t);
-            let g = Math.round(fromColor[1] + (toColor[1] - fromColor[1]) * t);
-            let b = Math.round(fromColor[2] + (toColor[2] - fromColor[2]) * t);
-            let pulseColor = "rgb(" + r + "," + g + "," + b + ")";
-            for (let entry of desklet._slotButtons) {
-                if (entry.button.hover) continue;
-                entry.visual.style = entry.visual._baseStyle(pulseColor);
-            }
-            return true;
-        });
-    }
-
-    _stopPulseAnimation() {
-        if (this._pulseTimeoutId) {
-            Mainloop.source_remove(this._pulseTimeoutId);
-            this._pulseTimeoutId = null;
-        }
-    }
-
     _renderFooter() {
         this._footer.destroy_all_children();
 
@@ -1368,7 +1272,7 @@ class XtreamDeckDesklet extends Desklet.Desklet {
             this._footer.add(dot);
         }
 
-        if (this._editMode && this._pages.length < MAX_PAGES) {
+        if (this._pages.length < MAX_PAGES) {
             let addBtn = new St.Button({ style: "width: 22px; height: 22px; margin: 2px; border-radius: 11px; background-color: rgba(255,255,255,0.2);", label: "+" });
             addBtn.connect("clicked", () => this._confirmAddPage());
             this._footer.add(addBtn);
