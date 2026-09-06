@@ -978,12 +978,14 @@ class XtreamDeckDesklet extends Desklet.Desklet {
 
         // Right-click, either mode: a small context menu with "Edit" (same action as
         // a left click in edit mode) and, when there's more than one page and this
-        // slot actually has something in it, "Move to next page". Consumed at
+        // slot actually has something in it, "Move to next page". Only for slots that
+        // actually have something configured - an empty slot falls through to the
+        // desklet's own normal right-click menu instead. Consumed at
         // button-press-event (not "clicked") for the same reason as the page dots'
         // own right-click handling below - stops St.Button's internal click tracking
         // from also firing the left-click action for this same press.
         button.connect("button-press-event", (actor, pressEvent) => {
-            if (pressEvent.get_button() !== 3) return false;
+            if (pressEvent.get_button() !== 3 || isEmptySlot(slot)) return false;
             desklet._openSlotContextMenu(slotIndex, button);
             return true;
         });
@@ -992,9 +994,10 @@ class XtreamDeckDesklet extends Desklet.Desklet {
         // button), not from 'button-press-event' - consuming just the press above
         // stops that menu from being *triggered* fresh, but the matching release
         // for the same right-click still bubbles up afterwards and toggles it open.
-        // Needs consuming separately here too.
+        // Needs consuming separately here too (mirrors the same isEmptySlot check,
+        // so an empty slot's right-click still reaches that native menu normally).
         button.connect("button-release-event", (actor, releaseEvent) => {
-            return releaseEvent.get_button() === 3;
+            return releaseEvent.get_button() === 3 && !isEmptySlot(slot);
         });
 
         // Drag-to-swap between slots, edit mode only. imports.ui.dnd was dropped: it left
@@ -1173,7 +1176,9 @@ class XtreamDeckDesklet extends Desklet.Desklet {
 
         const addItem = (text, onClick) => {
             let item = new St.Button({ style: "padding: 8px 18px; border-radius: 5px;" });
-            item.set_child(new St.Label({ text: text, style: "color: white; font-size: 14px;" }));
+            let labelBin = new St.Bin({ x_align: St.Align.START, x_fill: true });
+            labelBin.set_child(new St.Label({ text: text, style: "color: white; font-size: 14px;" }));
+            item.set_child(labelBin);
             item.connect("notify::hover", () => {
                 item.style = "padding: 8px 18px; border-radius: 5px;" + (item.hover ? " background-color: rgba(255,255,255,0.12);" : "");
             });
@@ -1247,28 +1252,30 @@ class XtreamDeckDesklet extends Desklet.Desklet {
         ).open();
     }
 
-    // Breathing white border on every slot while edit mode is active, as a visual
-    // cue that buttons can be dragged around. One shared timer restyles all slots
-    // per tick (cheaper and simpler than a Tweener per button) - reads
-    // this._slotButtons fresh each tick, so it never touches actors from a stale
-    // render. Skips a button currently under the pointer so hover/drag styling
-    // (set elsewhere) isn't clobbered.
+    // Breathing border on every slot while edit mode is active, as a visual cue
+    // that buttons can be dragged around: cycles between white and the app's own
+    // blue accent (not just a white opacity fade, which turned out too subtle to
+    // notice against the grid's own colorful backgrounds). One shared timer
+    // restyles all slots per tick (cheaper and simpler than a Tweener per button) -
+    // reads this._slotButtons fresh each tick, so it never touches actors from a
+    // stale render. Skips a button currently under the pointer so hover/drag
+    // styling (set elsewhere) isn't clobbered.
     _startPulseAnimation() {
         this._stopPulseAnimation();
         let desklet = this;
         let phase = 0;
-        let debugTicks = 0;
+        const fromColor = [255, 255, 255];
+        const toColor = [0x2D, 0x6D, 0xD9];
         this._pulseTimeoutId = Mainloop.timeout_add(50, () => {
-            phase += 0.2;
-            let alpha = 0.35 + 0.55 * (0.5 + 0.5 * Math.sin(phase));
-            let pulseColor = "rgba(255,255,255," + alpha.toFixed(2) + ")";
+            phase += 0.15;
+            let t = 0.5 + 0.5 * Math.sin(phase);
+            let r = Math.round(fromColor[0] + (toColor[0] - fromColor[0]) * t);
+            let g = Math.round(fromColor[1] + (toColor[1] - fromColor[1]) * t);
+            let b = Math.round(fromColor[2] + (toColor[2] - fromColor[2]) * t);
+            let pulseColor = "rgb(" + r + "," + g + "," + b + ")";
             for (let entry of desklet._slotButtons) {
                 if (entry.button.hover) continue;
                 entry.visual.style = entry.visual._baseStyle(pulseColor);
-            }
-            if (debugTicks < 5) {
-                debugTicks++;
-                global.log("xtream-desklet-deck DEBUG pulse tick " + debugTicks + ": slots=" + desklet._slotButtons.length + " alpha=" + alpha.toFixed(2) + " sample-style=" + (desklet._slotButtons[0] ? desklet._slotButtons[0].visual.style : "none"));
             }
             return true;
         });
