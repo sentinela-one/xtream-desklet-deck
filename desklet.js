@@ -791,7 +791,21 @@ class XtreamDeckDesklet extends Desklet.Desklet {
     }
 
     _buildUI() {
-        let root = new St.BoxLayout({ vertical: true, style_class: "xtream-deck-root", style: "background-color: rgba(20,20,20,0.85); border-radius: 10px; padding: 6px;" });
+        let root = new St.BoxLayout({ reactive: true, vertical: true, style_class: "xtream-deck-root", style: "background-color: rgba(20,20,20,0.85); border-radius: 10px; padding: 6px;" });
+
+        // The base Desklet class's own About/Remove/Support menu should only ever
+        // open from a right-click on the gear - not from the grid, an empty slot, a
+        // page dot, the donate coin, or blank header/footer space. Each of those
+        // either consumes its own right-click already (non-empty slots, page dots
+        // p>=1) or, lacking any handler of their own, simply bubbles the event up to
+        // here - reactive root now catches whatever wasn't already claimed by a more
+        // specific descendant and swallows it, except when it actually originated on
+        // the gear button itself (event.get_source() stays stable through bubbling).
+        const guardNativeMenu = (actor, event) => {
+            return event.get_button() === 3 && event.get_source() !== this._editButton;
+        };
+        root.connect("button-press-event", guardNativeMenu);
+        root.connect("button-release-event", guardNativeMenu);
 
         let header = new St.BoxLayout({ vertical: false, style: "padding: 2px 4px 6px 4px;" });
         this._titleLabel = new St.Label({ text: this._metadata.name, style: "font-weight: bold; color: white; font-size: 13px;" });
@@ -1167,7 +1181,9 @@ class XtreamDeckDesklet extends Desklet.Desklet {
 
         let page = this._pages[this._currentPage];
         let slot = page.slots[slotIndex];
-        let canMove = this._pages.length > 1 && !isEmptySlot(slot);
+        let hasContent = !isEmptySlot(slot);
+        let canMoveNext = hasContent && this._findFreeSlotInDirection(1) !== null;
+        let canMovePrevious = hasContent && this._findFreeSlotInDirection(-1) !== null;
 
         let menu = new St.BoxLayout({
             vertical: true,
@@ -1190,8 +1206,11 @@ class XtreamDeckDesklet extends Desklet.Desklet {
         };
 
         addItem("Edit", () => this._openEditor(slotIndex));
-        if (canMove) {
+        if (canMoveNext) {
             addItem("Move to next page", () => this._moveSlotToNextAvailablePage(slotIndex));
+        }
+        if (canMovePrevious) {
+            addItem("Move to previous page", () => this._moveSlotToPreviousAvailablePage(slotIndex));
         }
 
         Main.uiGroup.add_actor(menu);
@@ -1226,29 +1245,53 @@ class XtreamDeckDesklet extends Desklet.Desklet {
         }
     }
 
-    // Searches forward from the current page: moves the slot into the first empty
-    // slot found on any later page, not just the immediately next one. Leaves the
-    // source slot empty on success. Shows InfoDialog if no later page has room.
-    _moveSlotToNextAvailablePage(slotIndex) {
+    // Searches page by page away from the current one (step +1 for later pages,
+    // -1 for earlier ones) and returns the first { pageIndex, freeIndex } found, or
+    // null if none of the pages in that direction have room. Used both to decide
+    // whether the "Move to..." menu items should even appear and to carry out the
+    // move itself.
+    _findFreeSlotInDirection(step) {
+        for (let p = this._currentPage + step; p >= 0 && p < this._pages.length; p += step) {
+            let freeIndex = this._pages[p].slots.findIndex(isEmptySlot);
+            if (freeIndex !== -1) return { pageIndex: p, freeIndex: freeIndex };
+        }
+        return null;
+    }
+
+    _moveSlotTo(slotIndex, target) {
         let sourcePage = this._pages[this._currentPage];
         let slot = sourcePage.slots[slotIndex];
+        this._pages[target.pageIndex].slots[target.freeIndex] = slot;
+        sourcePage.slots[slotIndex] = emptySlot();
+        this._saveState();
+        this._render();
+    }
 
-        for (let p = this._currentPage + 1; p < this._pages.length; p++) {
-            let targetPage = this._pages[p];
-            let freeIndex = targetPage.slots.findIndex(isEmptySlot);
-            if (freeIndex !== -1) {
-                targetPage.slots[freeIndex] = slot;
-                sourcePage.slots[slotIndex] = emptySlot();
-                this._saveState();
-                this._render();
-                return;
-            }
+    // Not reachable from the menu itself (the menu item only appears when
+    // _findFreeSlotInDirection already found room), but kept as a safety net.
+    _moveSlotToNextAvailablePage(slotIndex) {
+        let target = this._findFreeSlotInDirection(1);
+        if (target) {
+            this._moveSlotTo(slotIndex, target);
+            return;
         }
-
         new InfoDialog(
             this._metadata.path,
             "No slot available",
             "There is no available slot on any later page to move this button to."
+        ).open();
+    }
+
+    _moveSlotToPreviousAvailablePage(slotIndex) {
+        let target = this._findFreeSlotInDirection(-1);
+        if (target) {
+            this._moveSlotTo(slotIndex, target);
+            return;
+        }
+        new InfoDialog(
+            this._metadata.path,
+            "No slot available",
+            "There is no available slot on any earlier page to move this button to."
         ).open();
     }
 
