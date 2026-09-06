@@ -977,15 +977,6 @@ class XtreamDeckDesklet extends Desklet.Desklet {
         }
         visual.set_child(box);
 
-        // Only wired for the non-edit-mode "run command" case. In edit mode, the
-        // button-press-event handler below consumes the press itself and resolves
-        // click-vs-drag on release, so St.Button's own "clicked" never fires there.
-        button.connect("clicked", () => {
-            if (!this._editMode && slot.command) {
-                this._runCommand(slot.command);
-            }
-        });
-
         this._slotButtons.push({ button: button, visual: visual, slotIndex: slotIndex });
 
         let desklet = this;
@@ -1014,26 +1005,28 @@ class XtreamDeckDesklet extends Desklet.Desklet {
             return releaseEvent.get_button() === 3 && !isEmptySlot(slot);
         });
 
-        // Drag-to-swap between slots, edit mode only. imports.ui.dnd was dropped: it left
-        // a stray blue placeholder overlay on screen and never actually triggered the swap
-        // (see limitation #9 in memory - superseded by this). Replaced with a hand-rolled
-        // drag: a Clutter.Clone ghost follows the pointer via a stage-level "captured-event"
-        // listener, the same low-level mechanism imports.ui.dnd itself uses internally. A
-        // short move threshold keeps a plain click from being swallowed as a drag.
-        if (this._editMode) {
-            button.connect("button-press-event", (actor, pressEvent) => {
-                if (pressEvent.get_button() !== 1) return false;
-                // Consume the press so St.Button never arms its own internal
-                // press/click tracking (which appears to hold an implicit pointer
-                // grab) - left uncontested, it was racing our own drag tracking and
-                // swallowing the real release, leaving the ghost stuck "hanging"
-                // until an unrelated later click (wrongly opening the editor) or a
-                // right-click finally freed it. We now own the whole press-drag-
-                // release lifecycle ourselves, including firing the click action.
-                desklet._startSlotDrag(slotIndex, button, pressEvent);
-                return true;
-            });
-        }
+        // Press-and-hold-to-drag-and-swap between slots, in either mode - not just
+        // edit mode: a plain click still opens the editor (edit mode) or runs the
+        // button's command (normal mode), but holding and moving the pointer past
+        // the threshold always reorders instead. imports.ui.dnd was dropped: it left
+        // a stray blue placeholder overlay on screen and never actually triggered the
+        // swap (see limitation #9 in memory - superseded by this). Replaced with a
+        // hand-rolled drag: a Clutter.Clone ghost follows the pointer via a
+        // stage-level "captured-event" listener, the same low-level mechanism
+        // imports.ui.dnd itself uses internally. A short move threshold keeps a
+        // plain click from being swallowed as a drag.
+        button.connect("button-press-event", (actor, pressEvent) => {
+            if (pressEvent.get_button() !== 1) return false;
+            // Consume the press so St.Button never arms its own internal
+            // press/click tracking (which appears to hold an implicit pointer
+            // grab) - left uncontested, it was racing our own drag tracking and
+            // swallowing the real release, leaving the ghost stuck "hanging"
+            // until an unrelated later click (wrongly opening the editor) or a
+            // right-click finally freed it. We now own the whole press-drag-
+            // release lifecycle ourselves, including firing the click action.
+            desklet._startSlotDrag(slotIndex, button, pressEvent);
+            return true;
+        });
 
         return button;
     }
@@ -1097,17 +1090,24 @@ class XtreamDeckDesklet extends Desklet.Desklet {
                             desklet._swapSlots(sourceSlotIndex, targetSlotIndex);
                             return false;
                         });
-                    } else {
+                    } else if (desklet._editMode) {
                         // Dropped outside any slot: nothing changed, so _render() (which
                         // would otherwise restart the pulse itself) never runs - resume it
-                        // here instead.
+                        // here instead. Only relevant in edit mode, where the pulse runs
+                        // at all - dragging is now also available outside it.
                         desklet._startPulseAnimation();
                     }
                 } else {
                     // No movement past the threshold: this was a plain click, and since
                     // we consumed the press ourselves (see button-press-event above),
-                    // we're the ones responsible for firing its action too.
-                    desklet._openEditor(sourceSlotIndex);
+                    // we're the ones responsible for firing its action too - which
+                    // action depends on the mode, same split "clicked" used to handle.
+                    if (desklet._editMode) {
+                        desklet._openEditor(sourceSlotIndex);
+                    } else {
+                        let slot = desklet._pages[desklet._currentPage].slots[sourceSlotIndex];
+                        if (slot.command) desklet._runCommand(slot.command);
+                    }
                 }
                 return true;
             }
