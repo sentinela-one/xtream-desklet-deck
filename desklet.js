@@ -45,6 +45,10 @@ function emptySlot() {
     return { label: "", command: "", icon: "", color: "", showTitle: true };
 }
 
+function isEmptySlot(slot) {
+    return !slot.icon && !slot.command && !slot.label;
+}
+
 function emptyPage() {
     let slots = [];
     for (let i = 0; i < SLOTS_PER_PAGE; i++) slots.push(emptySlot());
@@ -265,6 +269,30 @@ class ConfirmDialog extends ModalDialog.ModalDialog {
             } else if (button.label === confirmLabel) {
                 button.style = "padding: 10px 16px; font-size: 15px; border-radius: 6px; background-color: " + (confirmColor || "#e6194b") + ";";
             }
+        }
+    }
+}
+
+// Single-button informational dialog, styled like ConfirmDialog - used for messages
+// that don't need a yes/no choice (e.g. "no slot available to move this button to").
+class InfoDialog extends ModalDialog.ModalDialog {
+    constructor(deskletPath, titleText, messageText) {
+        super({ styleClass: "xtream-deck-dialog" });
+        this.contentLayout.style = "spacing: 16px; padding: 22px 22px;";
+
+        let title = new St.Label({ text: titleText, style: "font-weight: bold; color: white; font-size: 24px;" });
+        this.contentLayout.add(title, { x_align: St.Align.START });
+
+        let message = new St.Label({ text: messageText, style: "color: #cccccc; font-size: 16px; width: 380px;" });
+        message.clutter_text.line_wrap = true;
+        this.contentLayout.add(message);
+
+        this.setButtons([
+            { label: "OK", focused: true, action: () => this.close() }
+        ]);
+
+        for (let button of this._buttonLayout.get_children()) {
+            button.style = "padding: 10px 16px; font-size: 15px; border-radius: 6px; background-color: #2D6DD9;";
         }
     }
 }
@@ -824,12 +852,19 @@ class XtreamDeckDesklet extends Desklet.Desklet {
             global.stage.disconnect(this._escKeyHandlerId);
             this._escKeyHandlerId = null;
         }
+        this._stopPulseAnimation();
+        this._closeSlotContextMenu();
     }
 
     _render() {
         this._renderGear();
         this._renderGrid();
         this._renderFooter();
+        if (this._editMode) {
+            this._startPulseAnimation();
+        } else {
+            this._stopPulseAnimation();
+        }
     }
 
     _renderGear() {
@@ -866,8 +901,9 @@ class XtreamDeckDesklet extends Desklet.Desklet {
         let borderColor = this._editMode ? GRID_EDIT_BORDER_COLOR : "rgba(255,255,255,0.5)";
         let hoverBorderColor = "white";
 
-        const baseStyle = () => "width: " + BUTTON_SIZE + "px; height: " + BUTTON_SIZE + "px; background-color: " + bgColor + "; border-radius: 10px; border: 2px solid " + borderColor + ";";
+        const baseStyle = (borderOverride) => "width: " + BUTTON_SIZE + "px; height: " + BUTTON_SIZE + "px; background-color: " + bgColor + "; border-radius: 10px; border: 2px solid " + (borderOverride || borderColor) + ";";
         const hoverStyle = () => "width: " + BUTTON_SIZE + "px; height: " + BUTTON_SIZE + "px; background-color: " + hoverBgColor + "; border-radius: 10px; border: 2px solid " + hoverBorderColor + ";";
+        const highlightStyle = () => "width: " + BUTTON_SIZE + "px; height: " + BUTTON_SIZE + "px; background-color: " + hoverBgColor + "; border-radius: 10px; border: 3px solid #2D6DD9;";
 
         // Outer button: fixed size, never scaled. It's the actual reactive/hoverable
         // actor, so its hover hit-test region always stays exactly BUTTON_SIZE - if it
@@ -879,6 +915,11 @@ class XtreamDeckDesklet extends Desklet.Desklet {
         let button = new St.Button({ style: "width: " + BUTTON_SIZE + "px; height: " + BUTTON_SIZE + "px; margin: " + SLOT_MARGIN + "px;" });
         let visual = new St.Bin({ style: baseStyle() });
         visual.set_pivot_point(0.5, 0.5);
+        // Stashed unconditionally (not just in edit mode) so both the drag-highlight
+        // and the edit-mode border pulse (_startPulseAnimation) can restyle this same
+        // actor without needing to recompute bgColor/borderColor from scratch.
+        visual._baseStyle = baseStyle;
+        visual._highlightStyle = highlightStyle;
         button.set_child(visual);
 
         if (slot.label) {
@@ -931,7 +972,21 @@ class XtreamDeckDesklet extends Desklet.Desklet {
             }
         });
 
-        this._slotButtons.push({ button: button, slotIndex: slotIndex });
+        this._slotButtons.push({ button: button, visual: visual, slotIndex: slotIndex });
+
+        let desklet = this;
+
+        // Right-click, either mode: a small context menu with "Edit" (same action as
+        // a left click in edit mode) and, when there's more than one page and this
+        // slot actually has something in it, "Move to next page". Consumed at
+        // button-press-event (not "clicked") for the same reason as the page dots'
+        // own right-click handling below - stops St.Button's internal click tracking
+        // from also firing the left-click action for this same press.
+        button.connect("button-press-event", (actor, pressEvent) => {
+            if (pressEvent.get_button() !== 3) return false;
+            desklet._openSlotContextMenu(slotIndex, button);
+            return true;
+        });
 
         // Drag-to-swap between slots, edit mode only. imports.ui.dnd was dropped: it left
         // a stray blue placeholder overlay on screen and never actually triggered the swap
@@ -940,11 +995,6 @@ class XtreamDeckDesklet extends Desklet.Desklet {
         // listener, the same low-level mechanism imports.ui.dnd itself uses internally. A
         // short move threshold keeps a plain click from being swallowed as a drag.
         if (this._editMode) {
-            const highlightStyle = () => "width: " + BUTTON_SIZE + "px; height: " + BUTTON_SIZE + "px; background-color: " + hoverBgColor + "; border-radius: 10px; border: 3px solid #2D6DD9;";
-            visual._baseStyle = baseStyle;
-            visual._highlightStyle = highlightStyle;
-
-            let desklet = this;
             button.connect("button-press-event", (actor, pressEvent) => {
                 if (pressEvent.get_button() !== 1) return false;
                 // Consume the press so St.Button never arms its own internal
@@ -982,6 +1032,10 @@ class XtreamDeckDesklet extends Desklet.Desklet {
                         return false;
                     }
                     dragging = true;
+                    // Pause the edit-mode border pulse for the duration of the drag -
+                    // it restyles every slot's border on a timer, which would otherwise
+                    // fight the blue drop-target highlight below on every tick.
+                    desklet._stopPulseAnimation();
                     ghost = desklet._makeDragGhost(sourceButton);
                     Main.uiGroup.add_actor(ghost);
                 }
@@ -1017,6 +1071,11 @@ class XtreamDeckDesklet extends Desklet.Desklet {
                             desklet._swapSlots(sourceSlotIndex, targetSlotIndex);
                             return false;
                         });
+                    } else {
+                        // Dropped outside any slot: nothing changed, so _render() (which
+                        // would otherwise restart the pulse itself) never runs - resume it
+                        // here instead.
+                        desklet._startPulseAnimation();
                     }
                 } else {
                     // No movement past the threshold: this was a plain click, and since
@@ -1085,6 +1144,127 @@ class XtreamDeckDesklet extends Desklet.Desklet {
             }
         );
         dialog.open();
+    }
+
+    // Small hand-rolled context menu (not Cinnamon's PopupMenu/PopupMenuManager -
+    // those are meant for one long-lived menu per owner, and every render here
+    // destroys and recreates all slot buttons, which would leave stale menus
+    // registered against dead source actors). Dismissed on any click outside it.
+    _openSlotContextMenu(slotIndex, button) {
+        this._closeSlotContextMenu();
+
+        let page = this._pages[this._currentPage];
+        let slot = page.slots[slotIndex];
+        let canMove = this._pages.length > 1 && !isEmptySlot(slot);
+
+        let menu = new St.BoxLayout({
+            vertical: true,
+            style: "background-color: #2b2b2b; border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; padding: 6px;"
+        });
+
+        const addItem = (text, onClick) => {
+            let item = new St.Button({ style: "padding: 8px 18px; border-radius: 5px;" });
+            item.set_child(new St.Label({ text: text, style: "color: white; font-size: 14px;" }));
+            item.connect("notify::hover", () => {
+                item.style = "padding: 8px 18px; border-radius: 5px;" + (item.hover ? " background-color: rgba(255,255,255,0.12);" : "");
+            });
+            item.connect("clicked", () => {
+                this._closeSlotContextMenu();
+                onClick();
+            });
+            menu.add(item, { x_fill: true });
+        };
+
+        addItem("Edit", () => this._openEditor(slotIndex));
+        if (canMove) {
+            addItem("Move to next page", () => this._moveSlotToNextAvailablePage(slotIndex));
+        }
+
+        Main.uiGroup.add_actor(menu);
+        let [x, y] = global.get_pointer();
+        menu.set_position(x, y);
+        this._slotContextMenu = menu;
+
+        this._slotContextMenuCaptureId = global.stage.connect("captured-event", (actor, event) => {
+            let type = event.type();
+            if (type === Clutter.EventType.BUTTON_PRESS) {
+                let [ex, ey] = event.get_coords();
+                let [mx, my] = menu.get_transformed_position();
+                let [mw, mh] = menu.get_transformed_size();
+                if (ex < mx || ex > mx + mw || ey < my || ey > my + mh) {
+                    this._closeSlotContextMenu();
+                }
+            } else if (type === Clutter.EventType.KEY_PRESS && event.get_key_symbol() === Clutter.KEY_Escape) {
+                this._closeSlotContextMenu();
+            }
+            return false;
+        });
+    }
+
+    _closeSlotContextMenu() {
+        if (this._slotContextMenuCaptureId) {
+            global.stage.disconnect(this._slotContextMenuCaptureId);
+            this._slotContextMenuCaptureId = null;
+        }
+        if (this._slotContextMenu) {
+            this._slotContextMenu.destroy();
+            this._slotContextMenu = null;
+        }
+    }
+
+    // Searches forward from the current page: moves the slot into the first empty
+    // slot found on any later page, not just the immediately next one. Leaves the
+    // source slot empty on success. Shows InfoDialog if no later page has room.
+    _moveSlotToNextAvailablePage(slotIndex) {
+        let sourcePage = this._pages[this._currentPage];
+        let slot = sourcePage.slots[slotIndex];
+
+        for (let p = this._currentPage + 1; p < this._pages.length; p++) {
+            let targetPage = this._pages[p];
+            let freeIndex = targetPage.slots.findIndex(isEmptySlot);
+            if (freeIndex !== -1) {
+                targetPage.slots[freeIndex] = slot;
+                sourcePage.slots[slotIndex] = emptySlot();
+                this._saveState();
+                this._render();
+                return;
+            }
+        }
+
+        new InfoDialog(
+            this._metadata.path,
+            "No slot available",
+            "There is no available slot on any later page to move this button to."
+        ).open();
+    }
+
+    // Breathing white border on every slot while edit mode is active, as a visual
+    // cue that buttons can be dragged around. One shared timer restyles all slots
+    // per tick (cheaper and simpler than a Tweener per button) - reads
+    // this._slotButtons fresh each tick, so it never touches actors from a stale
+    // render. Skips a button currently under the pointer so hover/drag styling
+    // (set elsewhere) isn't clobbered.
+    _startPulseAnimation() {
+        this._stopPulseAnimation();
+        let desklet = this;
+        let phase = 0;
+        this._pulseTimeoutId = Mainloop.timeout_add(50, () => {
+            phase += 0.2;
+            let alpha = 0.35 + 0.55 * (0.5 + 0.5 * Math.sin(phase));
+            let pulseColor = "rgba(255,255,255," + alpha.toFixed(2) + ")";
+            for (let entry of desklet._slotButtons) {
+                if (entry.button.hover) continue;
+                entry.visual.style = entry.visual._baseStyle(pulseColor);
+            }
+            return true;
+        });
+    }
+
+    _stopPulseAnimation() {
+        if (this._pulseTimeoutId) {
+            Mainloop.source_remove(this._pulseTimeoutId);
+            this._pulseTimeoutId = null;
+        }
     }
 
     _renderFooter() {
