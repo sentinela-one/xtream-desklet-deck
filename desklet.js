@@ -987,6 +987,15 @@ class XtreamDeckDesklet extends Desklet.Desklet {
             desklet._openSlotContextMenu(slotIndex, button);
             return true;
         });
+        // The base Desklet class opens its own About/Remove menu from
+        // 'button-release-event' on the desklet's root actor (an ancestor of this
+        // button), not from 'button-press-event' - consuming just the press above
+        // stops that menu from being *triggered* fresh, but the matching release
+        // for the same right-click still bubbles up afterwards and toggles it open.
+        // Needs consuming separately here too.
+        button.connect("button-release-event", (actor, releaseEvent) => {
+            return releaseEvent.get_button() === 3;
+        });
 
         // Drag-to-swap between slots, edit mode only. imports.ui.dnd was dropped: it left
         // a stray blue placeholder overlay on screen and never actually triggered the swap
@@ -1248,6 +1257,7 @@ class XtreamDeckDesklet extends Desklet.Desklet {
         this._stopPulseAnimation();
         let desklet = this;
         let phase = 0;
+        let debugTicks = 0;
         this._pulseTimeoutId = Mainloop.timeout_add(50, () => {
             phase += 0.2;
             let alpha = 0.35 + 0.55 * (0.5 + 0.5 * Math.sin(phase));
@@ -1255,6 +1265,10 @@ class XtreamDeckDesklet extends Desklet.Desklet {
             for (let entry of desklet._slotButtons) {
                 if (entry.button.hover) continue;
                 entry.visual.style = entry.visual._baseStyle(pulseColor);
+            }
+            if (debugTicks < 5) {
+                debugTicks++;
+                global.log("xtream-desklet-deck DEBUG pulse tick " + debugTicks + ": slots=" + desklet._slotButtons.length + " alpha=" + alpha.toFixed(2) + " sample-style=" + (desklet._slotButtons[0] ? desklet._slotButtons[0].visual.style : "none"));
             }
             return true;
         });
