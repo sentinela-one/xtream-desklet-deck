@@ -140,20 +140,20 @@ class IconPickerDialog extends ModalDialog.ModalDialog {
         if (cloudGicon) {
             content.add(new St.Icon({ gicon: cloudGicon, icon_size: 32, opacity: 220 }), { x_align: St.Align.MIDDLE });
         }
-        let text = new St.Label({ text: "Click to upload a PNG icon.", style: "color: white; font-size: 14px; text-align: center;" });
+        let text = new St.Label({ text: "Click to upload an icon.", style: "color: white; font-size: 14px; text-align: center;" });
         text.clutter_text.line_wrap = true;
         content.add(text, { x_align: St.Align.MIDDLE });
-        let subtext = new St.Label({ text: "PNG only. Max size: 2MB.", style_class: "xtream-deck-hint" });
+        let subtext = new St.Label({ text: "PNG, JPG or GIF. Max size: 2MB.", style_class: "xtream-deck-hint" });
         content.add(subtext, { x_align: St.Align.MIDDLE });
         dropzone.set_child(content);
 
         dropzone.connect("clicked", () => {
             this._uploadStatus.text = "";
             this._hideForExternalPicker();
-            pickPngFileAsync((sourcePath) => {
+            pickImageFileAsync((sourcePath) => {
                 this._showAfterExternalPicker();
                 if (!sourcePath) return;
-                importCustomPngIcon(
+                importCustomImageIcon(
                     sourcePath,
                     (destPath) => {
                         this._onPick(destPath);
@@ -627,14 +627,14 @@ function resolveIconGicon(deskletPath, iconRef) {
     }
 }
 
-// Opens the system's native file picker (zenity) filtered to PNG, as an async
+// Opens the system's native file picker (zenity) filtered to PNG/JPG/GIF, as an async
 // subprocess - never blocks the Cinnamon shell. Always calls onDone exactly once,
 // with the chosen path or "" (cancelled or failed to launch) - callers rely on
 // onDone always firing to restore UI state they suspended while the picker was up.
-function pickPngFileAsync(onDone) {
+function pickImageFileAsync(onDone) {
     try {
         let proc = Gio.Subprocess.new(
-            ["zenity", "--file-selection", "--title=Choose a PNG icon", "--file-filter=*.png"],
+            ["zenity", "--file-selection", "--title=Choose an icon", "--file-filter=*.png *.jpg *.jpeg *.gif"],
             Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_SILENCE
         );
         proc.communicate_utf8_async(null, null, (source, res) => {
@@ -653,14 +653,14 @@ function pickPngFileAsync(onDone) {
     }
 }
 
-// Validates and copies a user-picked PNG into the desklet's own config dir (backed
+// Validates and copies a user-picked image into the desklet's own config dir (backed
 // up alongside instance state, unlike ~/.cache) so it survives independently of
 // wherever the user originally kept the source file. Returns the new absolute path
 // via onImported(path), or a human-readable message via onError(message).
-function importCustomPngIcon(sourcePath, onImported, onError) {
+function importCustomImageIcon(sourcePath, onImported, onError) {
     try {
-        if (!sourcePath.toLowerCase().endsWith(".png")) {
-            onError("Only PNG files are supported.");
+        if (!/\.(png|jpe?g|gif)$/i.test(sourcePath)) {
+            onError("Only PNG, JPG or GIF files are supported.");
             return;
         }
         let sourceFile = Gio.File.new_for_path(sourcePath);
