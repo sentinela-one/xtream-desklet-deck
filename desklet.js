@@ -1047,9 +1047,16 @@ class XtreamDeckDesklet extends Desklet.Desklet {
                 } else {
                     // No movement past the threshold: this was a plain click, and since
                     // we consumed the press ourselves (see button-press-event above),
-                    // we're the ones responsible for running its command too.
+                    // we're the ones responsible for running its command too. An empty
+                    // slot has nothing to run, so a plain left-click there opens its
+                    // editor directly instead - saves the right-click detour for the
+                    // common case of configuring a never-used slot.
                     let slot = desklet._pages[desklet._currentPage].slots[sourceSlotIndex];
-                    if (slot.command) desklet._runCommand(slot.command);
+                    if (slot.command) {
+                        desklet._runCommand(slot.command);
+                    } else if (isEmptySlot(slot)) {
+                        desklet._openEditor(sourceSlotIndex);
+                    }
                 }
                 return true;
             }
