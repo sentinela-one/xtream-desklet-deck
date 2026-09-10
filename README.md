@@ -37,14 +37,14 @@ a native Cinnamon desklet does the same job for a fraction of the resource cost.
 
 1. Clone this repository:
    ```bash
-   git clone https://github.com/oliveirawro/xtream-desklet-deck.git
+   git clone https://github.com/sentinela-one/xtream-desklet-deck.git
    cd xtream-desklet-deck
    ```
 
 2. Link it into Cinnamon's desklets folder (Cinnamon only loads desklets from this exact path):
    ```bash
    mkdir -p ~/.local/share/cinnamon/desklets
-   ln -s "$(pwd)" ~/.local/share/cinnamon/desklets/xtream-desklet-deck@oliveirawro
+   ln -s "$(pwd)" ~/.local/share/cinnamon/desklets/xtream-desklet-deck@sentinela-one
    ```
 
 3. Add it to your desktop:
@@ -101,7 +101,7 @@ already running in the integrated terminal by the time the window opens.
 - Right-click the desklet → **Remove**, to remove it from the desktop.
 - Delete the symlink to fully remove it from Cinnamon:
   ```bash
-  rm ~/.local/share/cinnamon/desklets/xtream-desklet-deck@oliveirawro
+  rm ~/.local/share/cinnamon/desklets/xtream-desklet-deck@sentinela-one
   ```
 
 ## How it works / project layout
