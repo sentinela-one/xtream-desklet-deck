@@ -664,18 +664,33 @@ function importCustomImageIcon(sourcePath, onImported, onError) {
             return;
         }
         let sourceFile = Gio.File.new_for_path(sourcePath);
-        let info = sourceFile.query_info("standard::size", Gio.FileQueryInfoFlags.NONE, null);
-        if (info.get_size() > CUSTOM_ICON_MAX_BYTES) {
-            onError("File is larger than 2MB.");
-            return;
-        }
+        sourceFile.query_info_async("standard::size", Gio.FileQueryInfoFlags.NONE, GLib.PRIORITY_DEFAULT, null, (src, res) => {
+            try {
+                let info = src.query_info_finish(res);
+                if (info.get_size() > CUSTOM_ICON_MAX_BYTES) {
+                    onError("File is larger than 2MB.");
+                    return;
+                }
 
-        let destDir = GLib.get_home_dir() + "/.config/xtream-desklet-deck/custom_icons";
-        GLib.mkdir_with_parents(destDir, 0o755);
-        let baseName = GLib.path_get_basename(sourcePath).replace(/[^a-zA-Z0-9._-]/g, "_");
-        let destPath = destDir + "/" + Date.now() + "-" + baseName;
-        sourceFile.copy(Gio.File.new_for_path(destPath), Gio.FileCopyFlags.OVERWRITE, null, null);
-        onImported(destPath);
+                let destDir = GLib.get_home_dir() + "/.config/xtream-desklet-deck/custom_icons";
+                GLib.mkdir_with_parents(destDir, 0o755);
+                let baseName = GLib.path_get_basename(sourcePath).replace(/[^a-zA-Z0-9._-]/g, "_");
+                let destPath = destDir + "/" + Date.now() + "-" + baseName;
+                let destFile = Gio.File.new_for_path(destPath);
+                src.copy_async(destFile, Gio.FileCopyFlags.OVERWRITE, GLib.PRIORITY_DEFAULT, null, null, (src2, res2) => {
+                    try {
+                        src2.copy_finish(res2);
+                        onImported(destPath);
+                    } catch (e) {
+                        onError("Failed to import icon.");
+                        global.logError("xtream-desklet-deck: failed to import custom icon '" + sourcePath + "': " + e);
+                    }
+                });
+            } catch (e) {
+                onError("Failed to import icon.");
+                global.logError("xtream-desklet-deck: failed to import custom icon '" + sourcePath + "': " + e);
+            }
+        });
     } catch (e) {
         onError("Failed to import icon.");
         global.logError("xtream-desklet-deck: failed to import custom icon '" + sourcePath + "': " + e);
@@ -688,66 +703,93 @@ class XtreamDeckDesklet extends Desklet.Desklet {
         this._metadata = metadata;
         this._statePath = GLib.get_home_dir() + "/.config/xtream-desklet-deck/instances/" + desklet_id + ".json";
         this._currentPage = 0;
+        this._pages = [emptyPage()];
 
-        this._loadState();
-        this._buildUI();
+        this._loadState(() => this._buildUI());
     }
 
-    _loadState() {
-        this._pages = [emptyPage()];
-        if (!this._loadStateFrom(this._statePath)) {
+    _loadState(onDone) {
+        this._loadStateFrom(this._statePath, (ok) => {
+            if (ok) {
+                if (this._currentPage >= this._pages.length) this._currentPage = 0;
+                onDone();
+                return;
+            }
             // Cinnamon assigns a new instance id (desklet_id) every time this desklet
             // is removed and re-added to the desktop, so a fresh instance normally has
             // no state file of its own yet. Recover the most recently saved state from
             // any other instance instead of starting from empty, so the user's button
             // configuration survives a remove/re-add (e.g. done to force a stylesheet
             // reload) instead of appearing to reset.
-            let fallback = this._findMostRecentStateFile();
-            if (fallback) {
-                this._loadStateFrom(fallback);
-            }
-        }
-        if (this._currentPage >= this._pages.length) this._currentPage = 0;
+            this._findMostRecentStateFile((fallback) => {
+                if (!fallback) {
+                    onDone();
+                    return;
+                }
+                this._loadStateFrom(fallback, () => {
+                    if (this._currentPage >= this._pages.length) this._currentPage = 0;
+                    onDone();
+                });
+            });
+        });
     }
 
-    _loadStateFrom(path) {
-        try {
-            let [ok, contents] = GLib.file_get_contents(path);
-            if (!ok) return false;
-            let data = JSON.parse(ByteArray.toString(contents));
-            if (!data || !Array.isArray(data.pages) || data.pages.length === 0) return false;
-            this._pages = data.pages;
-            if (typeof data.currentPage === "number") {
-                this._currentPage = data.currentPage;
+    _loadStateFrom(path, callback) {
+        let file = Gio.File.new_for_path(path);
+        file.load_contents_async(null, (source, res) => {
+            let ok = false;
+            try {
+                let [success, contents] = source.load_contents_finish(res);
+                if (success) {
+                    let data = JSON.parse(ByteArray.toString(contents));
+                    if (data && Array.isArray(data.pages) && data.pages.length > 0) {
+                        this._pages = data.pages;
+                        if (typeof data.currentPage === "number") {
+                            this._currentPage = data.currentPage;
+                        }
+                        ok = true;
+                    }
+                }
+            } catch (e) {
+                ok = false;
             }
-            return true;
-        } catch (e) {
-            return false;
-        }
+            callback(ok);
+        });
     }
 
-    _findMostRecentStateFile() {
+    _findMostRecentStateFile(callback) {
         try {
             let dirPath = GLib.path_get_dirname(this._statePath);
             let dir = Gio.File.new_for_path(dirPath);
-            if (!dir.query_exists(null)) return null;
-            let enumerator = dir.enumerate_children("standard::name,time::modified", Gio.FileQueryInfoFlags.NONE, null);
-            let newestPath = null;
-            let newestSeconds = 0;
-            let info;
-            while ((info = enumerator.next_file(null)) !== null) {
-                let name = info.get_name();
-                if (!name.endsWith(".json")) continue;
-                let seconds = info.get_modification_time().tv_sec;
-                if (seconds > newestSeconds) {
-                    newestSeconds = seconds;
-                    newestPath = dirPath + "/" + name;
+            dir.enumerate_children_async(
+                "standard::name,time::modified",
+                Gio.FileQueryInfoFlags.NONE,
+                GLib.PRIORITY_DEFAULT,
+                null,
+                (source, res) => {
+                    let newestPath = null;
+                    try {
+                        let enumerator = source.enumerate_children_finish(res);
+                        let newestSeconds = 0;
+                        let info;
+                        while ((info = enumerator.next_file(null)) !== null) {
+                            let name = info.get_name();
+                            if (!name.endsWith(".json")) continue;
+                            let seconds = info.get_modification_time().tv_sec;
+                            if (seconds > newestSeconds) {
+                                newestSeconds = seconds;
+                                newestPath = dirPath + "/" + name;
+                            }
+                        }
+                    } catch (e) {
+                        // Directory doesn't exist yet (first run ever) - not an error.
+                    }
+                    callback(newestPath);
                 }
-            }
-            return newestPath;
+            );
         } catch (e) {
             global.logError("xtream-desklet-deck: failed to scan instance state files: " + e);
-            return null;
+            callback(null);
         }
     }
 
@@ -756,7 +798,15 @@ class XtreamDeckDesklet extends Desklet.Desklet {
             let dirPath = GLib.path_get_dirname(this._statePath);
             GLib.mkdir_with_parents(dirPath, 0o755);
             let data = { pages: this._pages, currentPage: this._currentPage };
-            GLib.file_set_contents(this._statePath, JSON.stringify(data, null, 2));
+            let bytes = new GLib.Bytes(ByteArray.fromString(JSON.stringify(data, null, 2)));
+            let file = Gio.File.new_for_path(this._statePath);
+            file.replace_contents_bytes_async(bytes, null, false, Gio.FileCreateFlags.REPLACE_DESTINATION, null, (source, res) => {
+                try {
+                    source.replace_contents_finish(res);
+                } catch (e) {
+                    global.logError("xtream-desklet-deck: failed to save state: " + e);
+                }
+            });
         } catch (e) {
             global.logError("xtream-desklet-deck: failed to save state: " + e);
         }
