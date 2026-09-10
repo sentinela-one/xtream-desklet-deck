@@ -672,7 +672,7 @@ function importCustomImageIcon(sourcePath, onImported, onError) {
                     return;
                 }
 
-                let destDir = GLib.get_home_dir() + "/.config/xtream-desklet-deck/custom_icons";
+                let destDir = GLib.get_user_config_dir() + "/xtream-desklet-deck/custom_icons";
                 GLib.mkdir_with_parents(destDir, 0o755);
                 let baseName = GLib.path_get_basename(sourcePath).replace(/[^a-zA-Z0-9._-]/g, "_");
                 let destPath = destDir + "/" + Date.now() + "-" + baseName;
@@ -701,7 +701,7 @@ class XtreamDeckDesklet extends Desklet.Desklet {
     constructor(metadata, desklet_id) {
         super(metadata, desklet_id);
         this._metadata = metadata;
-        this._statePath = GLib.get_home_dir() + "/.config/xtream-desklet-deck/instances/" + desklet_id + ".json";
+        this._statePath = GLib.get_user_config_dir() + "/xtream-desklet-deck/instances/" + desklet_id + ".json";
         this._currentPage = 0;
         this._pages = [emptyPage()];
 
@@ -822,7 +822,7 @@ class XtreamDeckDesklet extends Desklet.Desklet {
 
     _openDonateLink() {
         try {
-            Util.spawnCommandLine("xdg-open " + DONATE_URL);
+            Util.spawn(["xdg-open", DONATE_URL]);
         } catch (e) {
             global.logError("xtream-desklet-deck: failed to open donate link: " + e);
         }
