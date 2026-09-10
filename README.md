@@ -1,5 +1,7 @@
 # Xtream Deck
 
+![Xtream Deck grid](screenshots/grid.png)
+
 A lightweight, native Stream Deck-style button grid for the **Cinnamon desktop**. No heavy
 background app, no separate process — it's a regular Cinnamon desklet, so it's basically free in
 terms of CPU/RAM.
@@ -56,6 +58,10 @@ a native Cinnamon desklet does the same job for a fraction of the resource cost.
 ## Configuring your buttons
 
 Everything is configured from inside the panel itself — there's no separate settings window.
+
+![Button editor](screenshots/button-editor.png)
+
+![Icon picker](screenshots/icon-picker.png)
 
 1. Click the small **gear icon** in the top-right corner of the deck to enter edit mode (the gear
    highlights while active). Buttons that already have an icon show that icon; empty slots show a
