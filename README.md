@@ -57,16 +57,16 @@ a native Cinnamon desklet does the same job for a fraction of the resource cost.
 
 ## Configuring your buttons
 
-Everything is configured from inside the panel itself — there's no separate settings window.
+Everything is configured from inside the panel itself — there's no separate settings window and
+no edit mode to turn on. Buttons behave the same way at all times: click to run, right-click or
+click an empty slot to configure.
 
 ![Button editor](screenshots/button-editor.png)
 
 ![Icon picker](screenshots/icon-picker.png)
 
-1. Click the small **gear icon** in the top-right corner of the deck to enter edit mode (the gear
-   highlights while active). Buttons that already have an icon show that icon; empty slots show a
-   pencil to mark them as clickable.
-2. Click any button to open its editor:
+1. **Open a button's editor**: left-click an empty slot to configure it directly, or right-click
+   any slot — empty or already configured — and pick **Edit** from the small menu:
    - **Label** — text shown under the icon. Its color automatically switches between black and
      white depending on the button's own background color, so it stays readable either way.
    - **Show Title** — toggle next to the label field; turns the label under the icon on/off on
@@ -74,19 +74,23 @@ Everything is configured from inside the panel itself — there's no separate se
    - **Command** — any shell command or script path, run when you click the button.
    - **Icon** — click **Pick icon…** and either search the bundled Font Awesome set (type e.g.
      `microphone`, `camera`, `play`; hover a result to see its full name before picking it), or
-     upload your own PNG (max 2MB) from the panel next to it.
+     upload your own PNG/JPG/GIF (max 2MB) from the panel next to it.
    - **Color** — pick a background color from the palette (the selected swatch gets a white
      border), clear it back to the default dark background, or type any custom color as a hex
      value (e.g. `#CC99CC`) in the field next to the palette.
    - **Clear button** wipes the slot back to empty. **Save**/**Cancel**/the **X** close the
-     editor; closing without saving discards your changes.
-3. **Reorder buttons**: still in edit mode, drag a button onto another one — they swap places.
-4. Click the **gear icon** again to leave edit mode — buttons now run their command on click
-   instead of opening the editor. **Esc** also exits edit mode.
-5. Use the numbered dots at the bottom to switch pages. While in edit mode, a **+** button appears
-   next to them to add a new page (up to 5 pages per deck, confirmation required). Right-click any
-   dot except the first one to remove that page (confirmation required — this deletes every button
-   configured on it).
+     editor; closing without saving discards your changes. **Esc** also closes the right-click
+     menu if one is open.
+2. **Run a button**: once it has a command, a plain left-click runs it.
+3. **Reorder buttons**: press and hold a button, drag it onto another slot and release — they
+   swap places. No mode to enable first, this works anywhere on the grid.
+4. **Move a button to another page**: right-click a configured slot and pick **Move to next
+   page** / **Move to previous page** (only shown when the target page has a free slot).
+5. Use the numbered dots at the bottom to switch pages. A **+** button next to them adds a new
+   page (up to 5 pages per deck, confirmation required). Right-click any dot except the first one
+   to remove that page (confirmation required — this deletes every button configured on it).
+6. The **gear icon** in the top-right corner opens the deck's About/Remove/Support menu (same
+   menu a right-click on the deck itself opens).
 
 ### Example button
 
@@ -114,7 +118,7 @@ already running in the integrated terminal by the time the window opens.
 
 - `metadata.json` — desklet identity (uuid, name, `max-instances: -1` so you can add as many as
   you want).
-- `desklet.js` — renders the header/grid/pagination, the in-panel edit mode and dialogs
+- `desklet.js` — renders the header/grid/pagination, the in-panel button editor and dialogs
   (`ButtonEditorDialog`, `IconPickerDialog`, `ConfirmDialog`), drag-to-swap reordering (hand-rolled
   on top of `Clutter`'s low-level pointer events, not Cinnamon's `imports.ui.dnd`), and runs the
   configured command on click (`Util.spawnCommandLine`), using Cinnamon's own `St`/`Clutter`
